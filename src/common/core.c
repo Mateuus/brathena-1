@@ -315,6 +315,7 @@ void core_defaults(void) {
 #ifndef MINICORE
 	HCache_defaults();
 #endif
+	strlib_defaults();
 	malloc_defaults();
 #ifndef MINICORE
 	sql_defaults();

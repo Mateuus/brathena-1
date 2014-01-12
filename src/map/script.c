@@ -1155,8 +1155,8 @@ const char *parse_simpleexpr(const char *p)
 			while(*p && *p != '"') {
 				if((unsigned char)p[-1] <= 0x7e && *p == '\\') {
 					char buf[8];
-					size_t len = skip_escaped_c(p) - p;
-					size_t n = sv_unescape_c(buf, p, len);
+					size_t len = sv->skip_escaped_c(p) - p;
+					size_t n = sv->unescape_c(buf, p, len);
 					if(n != 1)
 						ShowDebug("parse_simpleexpr: comprimento %d inesperado (\"%.*s\" -> %.*s)\n", (int)n, (int)len, p, (int)n, buf);
 					p += len;
@@ -2182,9 +2182,9 @@ const char *script_print_line(StringBuf *buf, const char *p, const char *mark, i
 	int i, mark_pos = 0, tabstop = TAB_SIZE;
 	if(p == NULL || !p[0]) return NULL;
 	if(line < 0)
-		StringBuf_Printf(buf, "*%5d: ", -line); // len = 8
+		StrBuf->Printf(buf, "*%5d: ", -line); // len = 8
 	else
-		StringBuf_Printf(buf, " %5d: ", line); // len = 8
+		StrBuf->Printf(buf, " %5d: ", line); // len = 8
 	update_tabstop(tabstop,8);                      // len = 8
 	for(i=0; p[i] && p[i] != '\n'; i++) {
 		char c = p[i];
@@ -2198,17 +2198,17 @@ const char *script_print_line(StringBuf *buf, const char *p, const char *mark, i
 		if( p + i < mark)
 			mark_pos += w;
 		if(p + i != mark)
-			StringBuf_Printf(buf, "%*c",w, c);
+			StrBuf->Printf(buf, "%*c",w, c);
 		else
-			StringBuf_Printf(buf,  CL_BT_RED"%*c"CL_RESET, w, c);
+			StrBuf->Printf(buf,  CL_BT_RED"%*c"CL_RESET, w, c);
 	}
-	StringBuf_AppendStr(buf, "\n");
+	StrBuf->AppendStr(buf, "\n");
 	if( mark ) {
-		StringBuf_AppendStr(buf, "        "CL_BT_CYAN); // len = 8
+		StrBuf->AppendStr(buf, "        "CL_BT_CYAN); // len = 8
 		for( ; mark_pos > 0; mark_pos-- ) {
-			StringBuf_AppendStr(buf, "~");
+			StrBuf->AppendStr(buf, "~");
 		}
-		StringBuf_AppendStr(buf, CL_RESET CL_BT_GREEN"^"CL_RESET"\n");
+		StrBuf->AppendStr(buf, CL_RESET CL_BT_GREEN"^"CL_RESET"\n");
 	}
 	return p+i+(p[i] == '\n' ? 1 : 0);
 }
@@ -2238,11 +2238,11 @@ void script_errorwarning_sub(StringBuf *buf, const char *src, const char *file, 
 	error_linepos = p;
 
 	if(line >= 0)
-		StringBuf_Printf(buf, "script error in file '%s' line %d column %d\n", file, line, error_pos-error_linepos+1);
+		StrBuf->Printf(buf, "script error in file '%s' line %d column %d\n", file, line, error_pos-error_linepos+1);
 	else
-		StringBuf_Printf(buf, "script error in file '%s' item ID %d\n", file, -line);
+		StrBuf->Printf(buf, "script error in file '%s' item ID %d\n", file, -line);
 
-	StringBuf_Printf(buf, "    %s\n", error_msg);
+	StrBuf->Printf(buf, "    %s\n", error_msg);
 	for(j = 0; j < CONTEXTLINES; j++) {
 		script->print_line(buf, linestart[j], NULL, line + j - CONTEXTLINES);
 	}
@@ -2256,24 +2256,24 @@ void script_errorwarning_sub(StringBuf *buf, const char *src, const char *file, 
 void script_error(const char* src, const char* file, int start_line, const char* error_msg, const char* error_pos) {
 	StringBuf buf;
 
-	StringBuf_Init(&buf);
-	StringBuf_AppendStr(&buf, "\a");
+	StrBuf->Init(&buf);
+	StrBuf->AppendStr(&buf, "\a");
 
 	script->errorwarning_sub(&buf, src, file, start_line, error_msg, error_pos);
 
-	ShowError("%s", StringBuf_Value(&buf));
-	StringBuf_Destroy(&buf);
+	ShowError("%s", StrBuf->Value(&buf));
+	StrBuf->Destroy(&buf);
 }
 
 void script_warning(const char* src, const char* file, int start_line, const char* error_msg, const char* error_pos) {
 	StringBuf buf;
 
-	StringBuf_Init(&buf);
+	StrBuf->Init(&buf);
 
 	script->errorwarning_sub(&buf, src, file, start_line, error_msg, error_pos);
 
-	ShowWarning("%s", StringBuf_Value(&buf));
-	StringBuf_Destroy(&buf);
+	ShowWarning("%s", StrBuf->Value(&buf));
+	StrBuf->Destroy(&buf);
 }
 
 /*==========================================
@@ -4740,7 +4740,7 @@ BUILDIN_FUNC(menu)
 			return 1;
 		}
 
-		StringBuf_Init(&buf);
+		StrBuf->Init(&buf);
 		sd->npc_menu = 0;
 		for(i = 2; i < script_lastdata(st); i += 2) {
 			// menu options
@@ -4750,7 +4750,7 @@ BUILDIN_FUNC(menu)
 			data = script_getdata(st, i+1);
 			if(!data_islabel(data)) {
 				// not a label
-				StringBuf_Destroy(&buf);
+				StrBuf->Destroy(&buf);
 				ShowError("script:menu: argument #%d (from 1) is not a label or label not found.\n", i);
 				script->reportdata(data);
 				st->state = END;
@@ -4761,8 +4761,8 @@ BUILDIN_FUNC(menu)
 			if(text[0] == '\0')
 				continue;// empty string, ignore
 			if(sd->npc_menu > 0)
-				StringBuf_AppendStr(&buf, ":");
-			StringBuf_AppendStr(&buf, text);
+				StrBuf->AppendStr(&buf, ":");
+			StrBuf->AppendStr(&buf, text);
 			sd->npc_menu += script->menu_countoptions(text, 0, NULL);
 		}
 		st->state = RERUNLINE;
@@ -4771,18 +4771,18 @@ BUILDIN_FUNC(menu)
 		/**
 		 * menus beyond this length crash the client (see bugreport:6402)
 		 **/
-		if(StringBuf_Length(&buf) >= 2047) {
+		if(StrBuf->Length(&buf) >= 2047) {
 			struct npc_data *nd = map_id2nd(st->oid);
 			char *menu;
 			CREATE(menu, char, 2048);
-			safestrncpy(menu, StringBuf_Value(&buf), 2047);
-			ShowWarning("NPC Menu too long! (source:%s / length:%d)\n",nd?nd->name:"Unknown",StringBuf_Length(&buf));
+			safestrncpy(menu, StrBuf->Value(&buf), 2047);
+			ShowWarning("NPC Menu too long! (source:%s / length:%d)\n", nd ? nd->name : "Unknown", StrBuf->Length(&buf));
 			clif_scriptmenu(sd, st->oid, menu);
 			aFree(menu);
 		} else
-			clif_scriptmenu(sd, st->oid, StringBuf_Value(&buf));
+			clif_scriptmenu(sd, st->oid, StrBuf->Value(&buf));
 
-		StringBuf_Destroy(&buf);
+		StrBuf->Destroy(&buf);
 
 		if(sd->npc_menu >= 0xff) {
 			// client supports only up to 254 entries; 0 is not used and 255 is reserved for cancel; excess entries are displayed but cause 'uint8' overflow
@@ -4854,15 +4854,15 @@ BUILDIN_FUNC(select)
 	if(sd->state.menu_or_input == 0) {
 		struct StringBuf buf;
 
-		StringBuf_Init(&buf);
+		StrBuf->Init(&buf);
 		sd->npc_menu = 0;
 		for(i = 2; i <= script_lastdata(st); ++i) {
 			text = script_getstr(st, i);
 
 			if(sd->npc_menu > 0)
-				StringBuf_AppendStr(&buf, ":");
+				StrBuf->AppendStr(&buf, ":");
 
-			StringBuf_AppendStr(&buf, text);
+			StrBuf->AppendStr(&buf, text);
 			sd->npc_menu += script->menu_countoptions(text, 0, NULL);
 		}
 
@@ -4872,17 +4872,17 @@ BUILDIN_FUNC(select)
 		/**
 		 * menus beyond this length crash the client (see bugreport:6402)
 		 **/
-		if(StringBuf_Length(&buf) >= 2047) {
+		if(StrBuf->Length(&buf) >= 2047) {
 			struct npc_data *nd = map_id2nd(st->oid);
 			char *menu;
 			CREATE(menu, char, 2048);
-			safestrncpy(menu, StringBuf_Value(&buf), 2047);
-			ShowWarning("NPC Menu too long! (source:%s / length:%d)\n",nd?nd->name:"Unknown",StringBuf_Length(&buf));
+			safestrncpy(menu, StrBuf->Value(&buf), 2047);
+			ShowWarning("NPC Menu too long! (source:%s / length:%d)\n",nd?nd->name:"Unknown",StrBuf->Length(&buf));
 			clif_scriptmenu(sd, st->oid, menu);
 			aFree(menu);
 		} else
-			clif_scriptmenu(sd, st->oid, StringBuf_Value(&buf));
-		StringBuf_Destroy(&buf);
+			clif_scriptmenu(sd, st->oid, StrBuf->Value(&buf));
+		StrBuf->Destroy(&buf);
 
 		if(sd->npc_menu >= 0xff) {
 			ShowWarning("buildin_select: Too many options specified (current=%d, max=254).\n", sd->npc_menu);
@@ -4933,13 +4933,13 @@ BUILDIN_FUNC(prompt)
 	if(sd->state.menu_or_input == 0) {
 		struct StringBuf buf;
 
-		StringBuf_Init(&buf);
+		StrBuf->Init(&buf);
 		sd->npc_menu = 0;
 		for(i = 2; i <= script_lastdata(st); ++i) {
 			text = script_getstr(st, i);
 			if(sd->npc_menu > 0)
-				StringBuf_AppendStr(&buf, ":");
-			StringBuf_AppendStr(&buf, text);
+				StrBuf->AppendStr(&buf, ":");
+			StrBuf->AppendStr(&buf, text);
 			sd->npc_menu += script->menu_countoptions(text, 0, NULL);
 		}
 
@@ -4949,17 +4949,17 @@ BUILDIN_FUNC(prompt)
 		/**
 		 * menus beyond this length crash the client (see bugreport:6402)
 		 **/
-		if(StringBuf_Length(&buf) >= 2047) {
+		if(StrBuf->Length(&buf) >= 2047) {
 			struct npc_data *nd = map_id2nd(st->oid);
 			char *menu;
 			CREATE(menu, char, 2048);
-			safestrncpy(menu, StringBuf_Value(&buf), 2047);
-			ShowWarning("NPC Menu too long! (source:%s / length:%d)\n",nd?nd->name:"Unknown",StringBuf_Length(&buf));
+			safestrncpy(menu, StrBuf->Value(&buf), 2047);
+			ShowWarning("NPC Menu too long! (source:%s / length:%d)\n",nd?nd->name:"Unknown",StrBuf->Length(&buf));
 			clif_scriptmenu(sd, st->oid, menu);
 			aFree(menu);
 		} else
-			clif_scriptmenu(sd, st->oid, StringBuf_Value(&buf));
-		StringBuf_Destroy(&buf);
+			clif_scriptmenu(sd, st->oid, StrBuf->Value(&buf));
+		StrBuf->Destroy(&buf);
 
 		if(sd->npc_menu >= 0xff) {
 			ShowWarning("buildin_prompt: Too many options specified (current=%d, max=254).\n", sd->npc_menu);
@@ -14127,7 +14127,7 @@ BUILDIN_FUNC(sprintf)
 	safestrncpy(buf, format, len+1);
 
 	// Issue sprintf for each parameter
-	StringBuf_Init(&final_buf);
+	StrBuf->Init(&final_buf);
 	q = buf;
 	while((p = strchr(q, '%'))!=NULL) {
 		if(p!=q) {
@@ -14137,12 +14137,12 @@ BUILDIN_FUNC(sprintf)
 				buf2_len = len;
 			}
 			safestrncpy(buf2, q, len);
-			StringBuf_AppendStr(&final_buf, buf2);
+			StrBuf->AppendStr(&final_buf, buf2);
 			q = p;
 		}
 		p = q+1;
 		if(*p=='%') { // %%
-			StringBuf_AppendStr(&final_buf, "%");
+			StrBuf->AppendStr(&final_buf, "%");
 			q+=2;
 			continue;
 		}
@@ -14156,7 +14156,7 @@ BUILDIN_FUNC(sprintf)
 			ShowError("buildin_sprintf: Not enough arguments passed!\n");
 			if(buf) aFree(buf);
 			if(buf2) aFree(buf2);
-			StringBuf_Destroy(&final_buf);
+			StrBuf->Destroy(&final_buf);
 			script_pushconststr(st,"");
 			return 1;
 		}
@@ -14178,21 +14178,21 @@ BUILDIN_FUNC(sprintf)
 		// the scripter's responsibility.
 		data = script_getdata(st, arg+3);
 		if(data_isstring(data)) { // String
-			StringBuf_Printf(&final_buf, buf2, script_getstr(st, arg+3));
+			StrBuf->Printf(&final_buf, buf2, script_getstr(st, arg+3));
 		} else if(data_isint(data)) { // Number
-			StringBuf_Printf(&final_buf, buf2, script_getnum(st, arg+3));
+			StrBuf->Printf(&final_buf, buf2, script_getnum(st, arg+3));
 		} else if(data_isreference(data)) { // Variable
 			char *name = reference_getname(data);
 			if(name[strlen(name)-1]=='$') { // var Str
-				StringBuf_Printf(&final_buf, buf2, script_getstr(st, arg+3));
+				StrBuf->Printf(&final_buf, buf2, script_getstr(st, arg+3));
 			} else { // var Int
-				StringBuf_Printf(&final_buf, buf2, script_getnum(st, arg+3));
+				StrBuf->Printf(&final_buf, buf2, script_getnum(st, arg+3));
 			}
 		} else { // Unsupported type
 			ShowError("buildin_sprintf: Unknown argument type!\n");
 			if(buf) aFree(buf);
 			if(buf2) aFree(buf2);
-			StringBuf_Destroy(&final_buf);
+			StrBuf->Destroy(&final_buf);
 			script_pushconststr(st,"");
 			return 1;
 		}
@@ -14201,7 +14201,7 @@ BUILDIN_FUNC(sprintf)
 
 	// Append anything left
 	if(*q) {
-		StringBuf_AppendStr(&final_buf, q);
+		StrBuf->AppendStr(&final_buf, q);
 	}
 
 	// Passed more, than needed
@@ -14210,11 +14210,11 @@ BUILDIN_FUNC(sprintf)
 		script->reportsrc(st);
 	}
 
-	script_pushstrcopy(st, StringBuf_Value(&final_buf));
+	script_pushstrcopy(st, StrBuf->Value(&final_buf));
 
 	if(buf) aFree(buf);
 	if(buf2) aFree(buf2);
-	StringBuf_Destroy(&final_buf);
+	StrBuf->Destroy(&final_buf);
 
 	return 0;
 }
@@ -14411,7 +14411,7 @@ BUILDIN_FUNC(replacestr)
 		}
 	}
 
-	StringBuf_Init(&output);
+	StrBuf->Init(&output);
 
 	for(; i < inputlen; i++) {
 		if(count && count == numFinds) {    //found enough, stop looking
@@ -14421,19 +14421,19 @@ BUILDIN_FUNC(replacestr)
 		for(f = 0; f <= findlen; f++) {
 			if(f == findlen) { //complete match
 				numFinds++;
-				StringBuf_AppendStr(&output, replace);
+				StrBuf->AppendStr(&output, replace);
 
 				i += findlen - 1;
 				break;
 			} else {
 				if(usecase) {
 					if((i + f) > inputlen || input[i + f] != find[f]) {
-						StringBuf_Printf(&output, "%c", input[i]);
+						StrBuf->Printf(&output, "%c", input[i]);
 						break;
 					}
 				} else {
 					if(((i + f) > inputlen || input[i + f] != find[f]) && TOUPPER(input[i+f]) != TOUPPER(find[f])) {
-						StringBuf_Printf(&output, "%c", input[i]);
+						StrBuf->Printf(&output, "%c", input[i]);
 						break;
 					}
 				}
@@ -14443,10 +14443,10 @@ BUILDIN_FUNC(replacestr)
 
 	//append excess after enough found
 	if(i < inputlen)
-		StringBuf_AppendStr(&output, &(input[i]));
+		StrBuf->AppendStr(&output, &(input[i]));
 
-	script_pushstrcopy(st, StringBuf_Value(&output));
-	StringBuf_Destroy(&output);
+	script_pushstrcopy(st, StrBuf->Value(&output));
+	StrBuf->Destroy(&output);
 	return 0;
 }
 
@@ -15610,12 +15610,12 @@ BUILDIN_FUNC(unittalk)
 	bl = map_id2bl(unit_id);
 	if(bl != NULL) {
 		struct StringBuf sbuf;
-		StringBuf_Init(&sbuf);
-		StringBuf_Printf(&sbuf, "%s : %s", status_get_name(bl), message);
-		clif_disp_overhead(bl, StringBuf_Value(&sbuf));
+		StrBuf->Init(&sbuf);
+		StrBuf->Printf(&sbuf, "%s : %s", status_get_name(bl), message);
+		clif_disp_overhead(bl, StrBuf->Value(&sbuf));
 		if(bl->type == BL_PC)
-			clif_displaymessage(((TBL_PC *)bl)->fd, StringBuf_Value(&sbuf));
-		StringBuf_Destroy(&sbuf);
+			clif_displaymessage(((TBL_PC *)bl)->fd, StrBuf->Value(&sbuf));
+		StrBuf->Destroy(&sbuf);
 	}
 
 	return 0;

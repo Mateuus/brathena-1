@@ -60,15 +60,15 @@ void auction_save(struct auction_data *auction)
 	if(!auction)
 		return;
 
-	StringBuf_Init(&buf);
-	StringBuf_Printf(&buf, "UPDATE `%s` SET `seller_id` = '%d', `seller_name` = ?, `buyer_id` = '%d', `buyer_name` = ?, `price` = '%d', `buynow` = '%d', `hours` = '%d', `timestamp` = '%lu', `nameid` = '%d', `item_name` = ?, `type` = '%d', `refine` = '%d', `attribute` = '%d'",
+	StrBuf->Init(&buf);
+	StrBuf->Printf(&buf, "UPDATE `%s` SET `seller_id` = '%d', `seller_name` = ?, `buyer_id` = '%d', `buyer_name` = ?, `price` = '%d', `buynow` = '%d', `hours` = '%d', `timestamp` = '%lu', `nameid` = '%d', `item_name` = ?, `type` = '%d', `refine` = '%d', `attribute` = '%d'",
 	                 auction_db, auction->seller_id, auction->buyer_id, auction->price, auction->buynow, auction->hours, (unsigned long)auction->timestamp, auction->item.nameid, auction->type, auction->item.refine, auction->item.attribute);
 	for(j = 0; j < MAX_SLOTS; j++)
-		StringBuf_Printf(&buf, ", `card%d` = '%d'", j, auction->item.card[j]);
-	StringBuf_Printf(&buf, " WHERE `auction_id` = '%d'", auction->auction_id);
+		StrBuf->Printf(&buf, ", `card%d` = '%d'", j, auction->item.card[j]);
+	StrBuf->Printf(&buf, " WHERE `auction_id` = '%d'", auction->auction_id);
 
 	stmt = SQL->StmtMalloc(sql_handle);
-	if(SQL_SUCCESS != SQL->StmtPrepareStr(stmt, StringBuf_Value(&buf))
+	if(SQL_SUCCESS != SQL->StmtPrepareStr(stmt, StrBuf->Value(&buf))
 		|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 0, SQLDT_STRING, auction->seller_name, strnlen(auction->seller_name, NAME_LENGTH))
 		|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 1, SQLDT_STRING, auction->buyer_name, strnlen(auction->buyer_name, NAME_LENGTH))
 		|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 2, SQLDT_STRING, auction->item_name, strnlen(auction->item_name, ITEM_NAME_LENGTH))
@@ -77,7 +77,7 @@ void auction_save(struct auction_data *auction)
 	}
 
 	SQL->StmtFree(stmt);
-	StringBuf_Destroy(&buf);
+	StrBuf->Destroy(&buf);
 }
 
 unsigned int auction_create(struct auction_data *auction)
@@ -91,22 +91,22 @@ unsigned int auction_create(struct auction_data *auction)
 
 	auction->timestamp = time(NULL) + (auction->hours * 3600);
 
-	StringBuf_Init(&buf);
-	StringBuf_Printf(&buf, "INSERT INTO `%s` (`seller_id`,`seller_name`,`buyer_id`,`buyer_name`,`price`,`buynow`,`hours`,`timestamp`,`nameid`,`item_name`,`type`,`refine`,`attribute`,`unique_id`", auction_db);
+	StrBuf->Init(&buf);
+	StrBuf->Printf(&buf, "INSERT INTO `%s` (`seller_id`,`seller_name`,`buyer_id`,`buyer_name`,`price`,`buynow`,`hours`,`timestamp`,`nameid`,`item_name`,`type`,`refine`,`attribute`,`unique_id`", auction_db);
 	for(j = 0; j < MAX_SLOTS; j++)
-		StringBuf_Printf(&buf, ",`card%d`", j);
-	StringBuf_Printf(&buf, ") VALUES ('%d',?,'%d',?,'%d','%d','%d','%lu','%d',?,'%d','%d','%d','%"PRIu64"'",
+		StrBuf->Printf(&buf, ",`card%d`", j);
+	StrBuf->Printf(&buf, ") VALUES ('%d',?,'%d',?,'%d','%d','%d','%lu','%d',?,'%d','%d','%d','%"PRIu64"'",
 	                 auction->seller_id, auction->buyer_id, auction->price, auction->buynow, auction->hours, (unsigned long)auction->timestamp, auction->item.nameid, auction->type, auction->item.refine, auction->item.attribute, auction->item.unique_id);
 	for(j = 0; j < MAX_SLOTS; j++)
-		StringBuf_Printf(&buf, ",'%d'", auction->item.card[j]);
-	StringBuf_AppendStr(&buf, ")");
+		StrBuf->Printf(&buf, ",'%d'", auction->item.card[j]);
+	StrBuf->AppendStr(&buf, ")");
 
 	//Unique Non Stackable Item ID
 	updateLastUid(auction->item.unique_id);
 	dbUpdateUid(sql_handle);
 
 	stmt = SQL->StmtMalloc(sql_handle);
-	if (SQL_SUCCESS != SQL->StmtPrepareStr(stmt, StringBuf_Value(&buf))
+	if (SQL_SUCCESS != SQL->StmtPrepareStr(stmt, StrBuf->Value(&buf))
 	   ||  SQL_SUCCESS != SQL->StmtBindParam(stmt, 0, SQLDT_STRING, auction->seller_name, strnlen(auction->seller_name, NAME_LENGTH))
 	   ||  SQL_SUCCESS != SQL->StmtBindParam(stmt, 1, SQLDT_STRING, auction->buyer_name, strnlen(auction->buyer_name, NAME_LENGTH))
 	   ||  SQL_SUCCESS != SQL->StmtBindParam(stmt, 2, SQLDT_STRING, auction->item_name, strnlen(auction->item_name, ITEM_NAME_LENGTH))
@@ -131,7 +131,7 @@ unsigned int auction_create(struct auction_data *auction)
 	}
 
 	SQL->StmtFree(stmt);
-	StringBuf_Destroy(&buf);
+	StrBuf->Destroy(&buf);
 
 	return auction->auction_id;
 }
@@ -189,17 +189,17 @@ void inter_auctions_fromsql(void)
 	int64 tick = gettick(), endtick;
 	time_t now = time(NULL);
 
-	StringBuf_Init(&buf);
-	StringBuf_AppendStr(&buf, "SELECT `auction_id`,`seller_id`,`seller_name`,`buyer_id`,`buyer_name`,"
+	StrBuf->Init(&buf);
+	StrBuf->AppendStr(&buf, "SELECT `auction_id`,`seller_id`,`seller_name`,`buyer_id`,`buyer_name`,"
 	                    "`price`,`buynow`,`hours`,`timestamp`,`nameid`,`item_name`,`type`,`refine`,`attribute`,`unique_id`");
 	for(i = 0; i < MAX_SLOTS; i++)
-		StringBuf_Printf(&buf, ",`card%d`", i);
-	StringBuf_Printf(&buf, " FROM `%s` ORDER BY `auction_id` DESC", auction_db);
+		StrBuf->Printf(&buf, ",`card%d`", i);
+	StrBuf->Printf(&buf, " FROM `%s` ORDER BY `auction_id` DESC", auction_db);
 
-	if(SQL_ERROR == SQL->Query(sql_handle, StringBuf_Value(&buf)))
+	if(SQL_ERROR == SQL->Query(sql_handle, StrBuf->Value(&buf)))
 		Sql_ShowDebug(sql_handle);
 
-	StringBuf_Destroy(&buf);
+	StrBuf->Destroy(&buf);
 
 	while(SQL_SUCCESS == SQL->NextRow(sql_handle)) {
 		CREATE(auction, struct auction_data, 1);

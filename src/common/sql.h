@@ -302,5 +302,4 @@ void sql_defaults(void);
 
 void Sql_Init(void);
 
-
 #endif /* _COMMON_SQL_H_ */

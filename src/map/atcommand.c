@@ -623,7 +623,7 @@ ACMD_FUNC(who)
 		display_type = 3;
 
 	level = pc_get_group_level(sd);
-	StringBuf_Init(&buf);
+	StrBuf->Init(&buf);
 
 	iter = mapit_getallusers();
 	for(pl_sd = (TBL_PC *)mapit_first(iter); mapit_exists(iter); pl_sd = (TBL_PC *)mapit_next(iter)) {
@@ -633,38 +633,38 @@ ACMD_FUNC(who)
 				continue;
 			switch(display_type) {
 				case 2: {
-						StringBuf_Printf(&buf, msg_txt(343), pl_sd->status.name); // "Name: %s "
+						StrBuf->Printf(&buf, msg_txt(343), pl_sd->status.name); // "Name: %s "
 						if(pc_get_group_id(pl_sd) > 0)  // Player title, if exists
-							StringBuf_Printf(&buf, msg_txt(344),pcg->get_name(pl_sd->group)); // "(%s) "
-						StringBuf_Printf(&buf, msg_txt(347), pl_sd->status.base_level, pl_sd->status.job_level,
+							StrBuf->Printf(&buf, msg_txt(344),pcg->get_name(pl_sd->group)); // "(%s) "
+						StrBuf->Printf(&buf, msg_txt(347), pl_sd->status.base_level, pl_sd->status.job_level,
 						                 job_name(pl_sd->status.class_)); // "| Lv:%d/%d | Job: %s"
 						break;
 					}
 				case 3: {
 						if(pc_has_permission(sd, PC_PERM_WHO_DISPLAY_AID))
-							StringBuf_Printf(&buf, msg_txt(912), pl_sd->status.char_id, pl_sd->status.account_id);  // "(CID:%d/AID:%d) "
-						StringBuf_Printf(&buf, msg_txt(343), pl_sd->status.name); // "Name: %s "
+							StrBuf->Printf(&buf, msg_txt(912), pl_sd->status.char_id, pl_sd->status.account_id);  // "(CID:%d/AID:%d) "
+						StrBuf->Printf(&buf, msg_txt(343), pl_sd->status.name); // "Name: %s "
 						if(pc_get_group_id(pl_sd) > 0)  // Player title, if exists
-							StringBuf_Printf(&buf, msg_txt(344), pcg->get_name(pl_sd->group)); // "(%s) "
-						StringBuf_Printf(&buf, msg_txt(348), mapindex_id2name(pl_sd->mapindex), pl_sd->bl.x, pl_sd->bl.y); // "| Location: %s %d %d"
+							StrBuf->Printf(&buf, msg_txt(344), pcg->get_name(pl_sd->group)); // "(%s) "
+						StrBuf->Printf(&buf, msg_txt(348), mapindex_id2name(pl_sd->mapindex), pl_sd->bl.x, pl_sd->bl.y); // "| Location: %s %d %d"
 						break;
 					}
 				default: {
 						struct party_data *p = party_search(pl_sd->status.party_id);
 						struct guild *g = pl_sd->guild;
 
-						StringBuf_Printf(&buf, msg_txt(343), pl_sd->status.name); // "Name: %s "
+						StrBuf->Printf(&buf, msg_txt(343), pl_sd->status.name); // "Name: %s "
 						if(pc_get_group_id(pl_sd) > 0)  // Player title, if exists
-							StringBuf_Printf(&buf, msg_txt(344), pcg->get_name(pl_sd->group)); // "(%s) "
+							StrBuf->Printf(&buf, msg_txt(344), pcg->get_name(pl_sd->group)); // "(%s) "
 						if(p != NULL)
-							StringBuf_Printf(&buf, msg_txt(345), p->party.name); // " | Party: '%s'"
+							StrBuf->Printf(&buf, msg_txt(345), p->party.name); // " | Party: '%s'"
 						if(g != NULL)
-							StringBuf_Printf(&buf, msg_txt(346), g->name); // " | Guild: '%s'"
+							StrBuf->Printf(&buf, msg_txt(346), g->name); // " | Guild: '%s'"
 						break;
 					}
 			}
-			clif_displaymessage(fd, StringBuf_Value(&buf));
-			StringBuf_Clear(&buf);
+			clif_displaymessage(fd, StrBuf->Value(&buf));
+			StrBuf->Clear(&buf);
 			count++;
 		}
 	}
@@ -672,21 +672,21 @@ ACMD_FUNC(who)
 
 	if(map_id < 0) {
 		if(count == 0)
-			StringBuf_Printf(&buf, msg_txt(28)); // No player found.
+			StrBuf->Printf(&buf, msg_txt(28)); // No player found.
 		else if(count == 1)
-			StringBuf_Printf(&buf, msg_txt(29)); // 1 player found.
+			StrBuf->Printf(&buf, msg_txt(29)); // 1 player found.
 		else
-			StringBuf_Printf(&buf, msg_txt(30), count); // %d players found.
+			StrBuf->Printf(&buf, msg_txt(30), count); // %d players found.
 	} else {
 		if(count == 0)
-			StringBuf_Printf(&buf, msg_txt(54), map[map_id].name); // No player found in map '%s'.
+			StrBuf->Printf(&buf, msg_txt(54), map[map_id].name); // No player found in map '%s'.
 		else if(count == 1)
-			StringBuf_Printf(&buf, msg_txt(55), map[map_id].name); // 1 player found in map '%s'.
+			StrBuf->Printf(&buf, msg_txt(55), map[map_id].name); // 1 player found in map '%s'.
 		else
-			StringBuf_Printf(&buf, msg_txt(56), count, map[map_id].name); // %d players found in map '%s'.
+			StrBuf->Printf(&buf, msg_txt(56), count, map[map_id].name); // %d players found in map '%s'.
 	}
-	clif_displaymessage(fd, StringBuf_Value(&buf));
-	StringBuf_Destroy(&buf);
+	clif_displaymessage(fd, StrBuf->Value(&buf));
+	StrBuf->Destroy(&buf);
 	return 0;
 }
 
@@ -1546,20 +1546,20 @@ ACMD_FUNC(help)
 		StringBuf buf;
 		bool has_aliases = false;
 
-		StringBuf_Init(&buf);
-		StringBuf_AppendStr(&buf, msg_txt(990)); // Available aliases:
+		StrBuf->Init(&buf);
+		StrBuf->AppendStr(&buf, msg_txt(990)); // Available aliases:
 		command_info = get_atcommandinfo_byname(command_name);
 		iter = db_iterator(atcommand_alias_db);
 		for(alias_info = dbi_first(iter); dbi_exists(iter); alias_info = dbi_next(iter)) {
 			if(alias_info->command == command_info) {
-				StringBuf_Printf(&buf, " %s", alias_info->alias);
+				StrBuf->Printf(&buf, " %s", alias_info->alias);
 				has_aliases = true;
 			}
 		}
 		dbi_destroy(iter);
 		if(has_aliases)
-			clif_displaymessage(fd, StringBuf_Value(&buf));
-		StringBuf_Destroy(&buf);
+			clif_displaymessage(fd, StrBuf->Value(&buf));
+		StrBuf->Destroy(&buf);
 	}
 
 	// Display help contents
@@ -8380,7 +8380,7 @@ ACMD_FUNC(itemlist)
 	} else
 		return 1;
 
-	StringBuf_Init(&buf);
+	StrBuf->Init(&buf);
 
 	count = 0; // total slots occupied
 	counter = 0; // total items found
@@ -8395,15 +8395,15 @@ ACMD_FUNC(itemlist)
 		count++;
 
 		if(count == 1) {
-			StringBuf_Printf(&buf, msg_txt(1332), location, sd->status.name); // ------ %s items list of '%s' ------
-			clif_displaymessage(fd, StringBuf_Value(&buf));
-			StringBuf_Clear(&buf);
+			StrBuf->Printf(&buf, msg_txt(1332), location, sd->status.name); // ------ %s items list of '%s' ------
+			clif_displaymessage(fd, StrBuf->Value(&buf));
+			StrBuf->Clear(&buf);
 		}
 
 		if(it->refine)
-			StringBuf_Printf(&buf, "%d %s %+d (%s, id: %d)", it->amount, itd->jname, it->refine, itd->name, it->nameid);
+			StrBuf->Printf(&buf, "%d %s %+d (%s, id: %d)", it->amount, itd->jname, it->refine, itd->name, it->nameid);
 		else
-			StringBuf_Printf(&buf, "%d %s (%s, id: %d)", it->amount, itd->jname, itd->name, it->nameid);
+			StrBuf->Printf(&buf, "%d %s (%s, id: %d)", it->amount, itd->jname, itd->name, it->nameid);
 
 		if(it->equip) {
 			char equipstr[CHAT_SIZE_MAX];
@@ -8438,24 +8438,24 @@ ACMD_FUNC(itemlist)
 				strcat(equipstr, msg_txt(1347)); // lower/mid/top head,
 			// remove final ', '
 			equipstr[strlen(equipstr) - 2] = '\0';
-			StringBuf_AppendStr(&buf, equipstr);
+			StrBuf->AppendStr(&buf, equipstr);
 		}
 
-		clif_displaymessage(fd, StringBuf_Value(&buf));
-		StringBuf_Clear(&buf);
+		clif_displaymessage(fd, StrBuf->Value(&buf));
+		StrBuf->Clear(&buf);
 
 		if(it->card[0] == CARD0_PET) {
 			// pet egg
 			if(it->card[3])
-				StringBuf_Printf(&buf, msg_txt(1348), (unsigned int)MakeDWord(it->card[1], it->card[2])); //  -> (pet egg, pet id: %u, named)
+				StrBuf->Printf(&buf, msg_txt(1348), (unsigned int)MakeDWord(it->card[1], it->card[2])); //  -> (pet egg, pet id: %u, named)
 			else
-				StringBuf_Printf(&buf, msg_txt(1349), (unsigned int)MakeDWord(it->card[1], it->card[2])); //  -> (pet egg, pet id: %u, unnamed)
+				StrBuf->Printf(&buf, msg_txt(1349), (unsigned int)MakeDWord(it->card[1], it->card[2])); //  -> (pet egg, pet id: %u, unnamed)
 		} else if(it->card[0] == CARD0_FORGE) {
 			// forged item
-			StringBuf_Printf(&buf, msg_txt(1350), (unsigned int)MakeDWord(it->card[2], it->card[3]), it->card[1]>>8, it->card[1]&0x0f); //  -> (crafted item, creator id: %u, star crumbs %d, element %d)
+			StrBuf->Printf(&buf, msg_txt(1350), (unsigned int)MakeDWord(it->card[2], it->card[3]), it->card[1]>>8, it->card[1]&0x0f); //  -> (crafted item, creator id: %u, star crumbs %d, element %d)
 		} else if(it->card[0] == CARD0_CREATE) {
 			// created item
-			StringBuf_Printf(&buf, msg_txt(1351), (unsigned int)MakeDWord(it->card[2], it->card[3])); //  -> (produced item, creator id: %u)
+			StrBuf->Printf(&buf, msg_txt(1351), (unsigned int)MakeDWord(it->card[2], it->card[3])); //  -> (produced item, creator id: %u)
 		} else {
 			// normal item
 			int counter2 = 0;
@@ -8469,32 +8469,32 @@ ACMD_FUNC(itemlist)
 				counter2++;
 
 				if(counter2 == 1)
-					StringBuf_AppendStr(&buf, msg_txt(1352)); //  -> (card(s):
+					StrBuf->AppendStr(&buf, msg_txt(1352)); //  -> (card(s):
 
 				if(counter2 != 1)
-					StringBuf_AppendStr(&buf, ", ");
+					StrBuf->AppendStr(&buf, ", ");
 
-				StringBuf_Printf(&buf, "#%d %s (id: %d)", counter2, card->jname, card->nameid);
+				StrBuf->Printf(&buf, "#%d %s (id: %d)", counter2, card->jname, card->nameid);
 			}
 
 			if(counter2 > 0)
-				StringBuf_AppendStr(&buf, ")");
+				StrBuf->AppendStr(&buf, ")");
 		}
 
-		if(StringBuf_Length(&buf) > 0)
-			clif_displaymessage(fd, StringBuf_Value(&buf));
+		if(StrBuf->Length(&buf) > 0)
+			clif_displaymessage(fd, StrBuf->Value(&buf));
 
-		StringBuf_Clear(&buf);
+		StrBuf->Clear(&buf);
 	}
 
 	if(count == 0)
-		StringBuf_Printf(&buf, msg_txt(1353), location); // No item found in this player's %s.
+		StrBuf->Printf(&buf, msg_txt(1353), location); // No item found in this player's %s.
 	else
-		StringBuf_Printf(&buf, msg_txt(1354), counter, count, location); // %d item(s) found in %d %s slots.
+		StrBuf->Printf(&buf, msg_txt(1354), counter, count, location); // %d item(s) found in %d %s slots.
 
-	clif_displaymessage(fd, StringBuf_Value(&buf));
+	clif_displaymessage(fd, StrBuf->Value(&buf));
 
-	StringBuf_Destroy(&buf);
+	StrBuf->Destroy(&buf);
 
 	return 0;
 }
