@@ -1188,11 +1188,11 @@ void homunculus_exp_db_read(void) {
 
 	memset(homun->exptable, 0, sizeof(homun->exptable));
 
-	if(SQL_ERROR == SQL->Query(dbmysql_handle, "SELECT * FROM `%s`", get_database_name(52)))
+	if(SQL_ERROR == Sql_Query(dbmysql_handle, "SELECT * FROM `%s`", get_database_name(52)))
 		Sql_ShowDebug(dbmysql_handle);
 
-	while(SQL_SUCCESS == SQL->NextRow(dbmysql_handle) && HomunLoop < MAX_LEVEL) {
-		SQL->GetData(dbmysql_handle, 0, &row, NULL);
+	while(SQL_SUCCESS == Sql_NextRow(dbmysql_handle) && HomunLoop < MAX_LEVEL) {
+		Sql_GetData(dbmysql_handle, 0, &row, NULL);
 		homun->exptable[HomunLoop] = atoi(row);
 
 		if(homun->exptable[HomunLoop++] == 9999999)
@@ -1205,7 +1205,7 @@ void homunculus_exp_db_read(void) {
 	}
 
 	ShowSQL(read_message("Source.map.map_homunculus_s13"), CL_WHITE, HomunLoop, CL_RESET, CL_WHITE, get_database_name(52), CL_RESET);
-	SQL->FreeResult(dbmysql_handle);
+	Sql_FreeResult(dbmysql_handle);
 }
 
 void homunculus_reload(void) {

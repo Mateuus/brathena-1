@@ -1399,25 +1399,25 @@ int npc_buylist_sub(struct map_session_data *sd, int n, unsigned short *item_lis
  * Loads persistent NPC Market Data from SQL
  **/
 void npc_market_fromsql(void) {
-	SqlStmt* stmt = SQL->StmtMalloc(mmysql_handle);
+	SqlStmt* stmt = SqlStmt_Malloc(mmysql_handle);
 	char name[NAME_LENGTH+1];
 	int itemid;
 	int amount;
 
 	/* TODO inter-server.conf npc_market_data */
-	if (SQL_ERROR == SQL->StmtPrepare(stmt, "SELECT `name`, `itemid`, `amount` FROM `npc_market_data`")
-		|| SQL_ERROR == SQL->StmtExecute(stmt)
+	if (SQL_ERROR == SqlStmt_Prepare(stmt, "SELECT `name`, `itemid`, `amount` FROM `npc_market_data`")
+		|| SQL_ERROR == SqlStmt_Execute(stmt)
 		) {
 		SqlStmt_ShowDebug(stmt);
-		SQL->StmtFree(stmt);
+		SqlStmt_Free(stmt);
 		return;
 	}
 
-	SQL->StmtBindColumn(stmt, 0, SQLDT_STRING, &name[0], sizeof(name), NULL, NULL);
-	SQL->StmtBindColumn(stmt, 1, SQLDT_INT, &itemid, 0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 2, SQLDT_INT, &amount, 0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 0, SQLDT_STRING, &name[0], sizeof(name), NULL, NULL);
+	SqlStmt_BindColumn(stmt, 1, SQLDT_INT, &itemid, 0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 2, SQLDT_INT, &amount, 0, NULL, NULL);
 
-	while(SQL_SUCCESS == SQL->StmtNextRow(stmt)) {
+	while(SQL_SUCCESS == SqlStmt_NextRow(stmt)) {
 		struct npc_data *nd = NULL;
 		unsigned short i;
 
@@ -1446,14 +1446,14 @@ void npc_market_fromsql(void) {
 		
 	}
 	
-	SQL->StmtFree(stmt);
+	SqlStmt_Free(stmt);
 }
 /**
  * Saves persistent NPC Market Data into SQL
  **/
 void npc_market_tosql(struct npc_data *nd, unsigned short index) {
 	/* TODO inter-server.conf npc_market_data */
-	if(SQL_ERROR == SQL->Query(mmysql_handle, "REPLACE INTO `npc_market_data` VALUES ('%s','%d','%d')", nd->exname, nd->u.scr.shop->item[index].nameid, nd->u.scr.shop->item[index].qty))
+	if(SQL_ERROR == Sql_Query(mmysql_handle, "REPLACE INTO `npc_market_data` VALUES ('%s','%d','%d')", nd->exname, nd->u.scr.shop->item[index].nameid, nd->u.scr.shop->item[index].qty))
 		Sql_ShowDebug(mmysql_handle);
 }
 /**
@@ -1462,10 +1462,10 @@ void npc_market_tosql(struct npc_data *nd, unsigned short index) {
 void npc_market_delfromsql_sub(const char *npcname, unsigned short index) {
 	/* TODO inter-server.conf npc_market_data */
 	if(index == USHRT_MAX) {
-		if(SQL_ERROR == SQL->Query(mmysql_handle, "DELETE FROM `npc_market_data` WHERE `name`='%s'", npcname))
+		if(SQL_ERROR == Sql_Query(mmysql_handle, "DELETE FROM `npc_market_data` WHERE `name`='%s'", npcname))
 			Sql_ShowDebug(mmysql_handle);
 	} else {
-		if(SQL_ERROR == SQL->Query(mmysql_handle, "DELETE FROM `npc_market_data` WHERE `name`='%s' AND `itemid`='%d' LIMIT 1", npcname, index))
+		if(SQL_ERROR == Sql_Query(mmysql_handle, "DELETE FROM `npc_market_data` WHERE `name`='%s' AND `itemid`='%d' LIMIT 1", npcname, index))
 			Sql_ShowDebug(mmysql_handle);
 	}
 }
@@ -2190,7 +2190,7 @@ int npc_unload(struct npc_data *nd, bool single)
 	if(single && nd->bl.m != -1)
 		map_remove_questinfo(nd->bl.m,nd);
 
-	if((nd->subtype == SHOP || nd->subtype == CASHSHOP) && nd->src_id == 0)  //src check for duplicate shops [Orcao]
+	if(nd->src_id == 0 && (nd->subtype == SHOP || nd->subtype == CASHSHOP))  //src check for duplicate shops [Orcao]
 		aFree(nd->u.shop.shop_item);
 	else if(nd->subtype == SCRIPT) {
 		struct s_mapiterator *iter;

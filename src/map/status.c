@@ -11732,19 +11732,19 @@ void sc_script_free(void)
 void read_buffspecial_db(void) { //brAthena
 	int sc = 0;
 
-	if(SQL->Query(dbmysql_handle, "SELECT * FROM `%s`", get_database_name(61)) == SQL_ERROR) {
+	if(Sql_Query(dbmysql_handle, "SELECT * FROM `%s`", get_database_name(61)) == SQL_ERROR) {
 		Sql_ShowDebug(dbmysql_handle);
 		return;
 	}
 	
 	sc_script_free();
 
-	while(SQL->NextRow(dbmysql_handle) == SQL_SUCCESS) {
+	while(Sql_NextRow(dbmysql_handle) == SQL_SUCCESS) {
 		char *res[2];
 		int type=0;
 
-		SQL->GetData(dbmysql_handle, 0, &res[0], NULL);
-		SQL->GetData(dbmysql_handle, 1, &res[1], NULL);
+		Sql_GetData(dbmysql_handle, 0, &res[0], NULL);
+		Sql_GetData(dbmysql_handle, 1, &res[1], NULL);
 
 		if(!script->get_constant(res[0], &type)) {
 			ShowWarning(read_message("Source.map.status_buffspecial"), CL_WHITE, res[0], CL_RESET);
@@ -11757,7 +11757,7 @@ void read_buffspecial_db(void) { //brAthena
 	}
 	
 	ShowSQL("Leitura de '"CL_WHITE"%lu"CL_RESET"' entradas na tabela '"CL_WHITE"%s"CL_RESET"'.\n", sc, get_database_name(61));
-	SQL->FreeResult(dbmysql_handle);
+	Sql_FreeResult(dbmysql_handle);
 }
 
 /*==========================================

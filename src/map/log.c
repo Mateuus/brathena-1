@@ -155,15 +155,15 @@ void log_branch(struct map_session_data *sd)
 		queryThread_log(entry,e_length);
 #else
 		SqlStmt *stmt;
-		stmt = SQL->StmtMalloc(logmysql_handle);
-		if (SQL_SUCCESS != SQL->StmtPrepare(stmt, LOG_QUERY " INTO `%s` (`branch_date`, `account_id`, `char_id`, `char_name`, `map`) VALUES (NOW(), '%d', '%d', ?, '%s')", log_config.log_branch, sd->status.account_id, sd->status.char_id, mapindex_id2name(sd->mapindex))
-			|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 0, SQLDT_STRING, sd->status.name, strnlen(sd->status.name, NAME_LENGTH))
-			|| SQL_SUCCESS != SQL->StmtExecute(stmt)) {
+		stmt = SqlStmt_Malloc(logmysql_handle);
+		if (SQL_SUCCESS != SqlStmt_Prepare(stmt, LOG_QUERY " INTO `%s` (`branch_date`, `account_id`, `char_id`, `char_name`, `map`) VALUES (NOW(), '%d', '%d', ?, '%s')", log_config.log_branch, sd->status.account_id, sd->status.char_id, mapindex_id2name(sd->mapindex))
+			|| SQL_SUCCESS != SqlStmt_BindParam(stmt, 0, SQLDT_STRING, sd->status.name, strnlen(sd->status.name, NAME_LENGTH))
+			|| SQL_SUCCESS != SqlStmt_Execute(stmt)) {
 			SqlStmt_ShowDebug(stmt);
-			SQL->StmtFree(stmt);
+			SqlStmt_Free(stmt);
 			return;
 		}
-		SQL->StmtFree(stmt);
+		SqlStmt_Free(stmt);
 #endif
 	} else {
 		char timestring[255];
@@ -199,7 +199,7 @@ void log_pick(int id, int16 m, e_log_pick_type type, int amount, struct item *it
 		                   log_config.log_pick, id, log_picktype2char(type), itm->nameid, amount, itm->refine, itm->card[0], itm->card[1], itm->card[2], itm->card[3], map[m].name?map[m].name:"", itm->unique_id);
 		queryThread_log(entry,e_length);
 #else
-		if(SQL_ERROR == SQL->Query(logmysql_handle, LOG_QUERY " INTO `%s` (`time`, `char_id`, `type`, `nameid`, `amount`, `refine`, `card0`, `card1`, `card2`, `card3`, `map`, `unique_id`) VALUES (NOW(), '%d', '%c', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%"PRIu64"')",
+		if(SQL_ERROR == Sql_Query(logmysql_handle, LOG_QUERY " INTO `%s` (`time`, `char_id`, `type`, `nameid`, `amount`, `refine`, `card0`, `card1`, `card2`, `card3`, `map`, `unique_id`) VALUES (NOW(), '%d', '%c', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%"PRIu64"')",
 		                          log_config.log_pick, id, log_picktype2char(type), itm->nameid, amount, itm->refine, itm->card[0], itm->card[1], itm->card[2], itm->card[3], map[m].name?map[m].name:"", itm->unique_id)) {
 			Sql_ShowDebug(logmysql_handle);
 			return;
@@ -250,7 +250,7 @@ void log_zeny(struct map_session_data *sd, e_log_pick_type type, struct map_sess
 		                   log_config.log_zeny, sd->status.char_id, src_sd->status.char_id, log_picktype2char(type), amount, mapindex_id2name(sd->mapindex));
 		queryThread_log(entry,e_length);
 #else
-		if(SQL_ERROR == SQL->Query(logmysql_handle, LOG_QUERY " INTO `%s` (`time`, `char_id`, `src_id`, `type`, `amount`, `map`) VALUES (NOW(), '%d', '%d', '%c', '%d', '%s')",
+		if(SQL_ERROR == Sql_Query(logmysql_handle, LOG_QUERY " INTO `%s` (`time`, `char_id`, `src_id`, `type`, `amount`, `map`) VALUES (NOW(), '%d', '%d', '%c', '%d', '%s')",
 		                          log_config.log_zeny, sd->status.char_id, src_sd->status.char_id, log_picktype2char(type), amount, mapindex_id2name(sd->mapindex))) {
 			Sql_ShowDebug(logmysql_handle);
 			return;
@@ -287,7 +287,7 @@ void log_mvpdrop(struct map_session_data *sd, int monster_id, int *log_mvp)
 		                   log_config.log_mvpdrop, sd->status.char_id, monster_id, log_mvp[0], log_mvp[1], mapindex_id2name(sd->mapindex));
 		queryThread_log(entry,e_length);
 #else
-		if(SQL_ERROR == SQL->Query(logmysql_handle, LOG_QUERY " INTO `%s` (`mvp_date`, `kill_char_id`, `monster_id`, `prize`, `mvpexp`, `map`) VALUES (NOW(), '%d', '%d', '%d', '%d', '%s') ",
+		if(SQL_ERROR == Sql_Query(logmysql_handle, LOG_QUERY " INTO `%s` (`mvp_date`, `kill_char_id`, `monster_id`, `prize`, `mvpexp`, `map`) VALUES (NOW(), '%d', '%d', '%d', '%d', '%s') ",
 		                          log_config.log_mvpdrop, sd->status.char_id, monster_id, log_mvp[0], log_mvp[1], mapindex_id2name(sd->mapindex))) {
 			Sql_ShowDebug(logmysql_handle);
 			return;
@@ -326,16 +326,16 @@ void log_atcommand(struct map_session_data *sd, const char *message)
 #else
 		SqlStmt *stmt;
 
-		stmt = SQL->StmtMalloc(logmysql_handle);
-		if (SQL_SUCCESS != SQL->StmtPrepare(stmt, LOG_QUERY " INTO `%s` (`atcommand_date`, `account_id`, `char_id`, `char_name`, `map`, `command`) VALUES (NOW(), '%d', '%d', ?, '%s', ?)", log_config.log_gm, sd->status.account_id, sd->status.char_id, mapindex_id2name(sd->mapindex))
-			|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 0, SQLDT_STRING, sd->status.name, strnlen(sd->status.name, NAME_LENGTH))
-			|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 1, SQLDT_STRING, (char *)message, safestrnlen(message, 255))
-			|| SQL_SUCCESS != SQL->StmtExecute(stmt)) {
+		stmt = SqlStmt_Malloc(logmysql_handle);
+		if (SQL_SUCCESS != SqlStmt_Prepare(stmt, LOG_QUERY " INTO `%s` (`atcommand_date`, `account_id`, `char_id`, `char_name`, `map`, `command`) VALUES (NOW(), '%d', '%d', ?, '%s', ?)", log_config.log_gm, sd->status.account_id, sd->status.char_id, mapindex_id2name(sd->mapindex))
+			|| SQL_SUCCESS != SqlStmt_BindParam(stmt, 0, SQLDT_STRING, sd->status.name, strnlen(sd->status.name, NAME_LENGTH))
+			|| SQL_SUCCESS != SqlStmt_BindParam(stmt, 1, SQLDT_STRING, (char *)message, safestrnlen(message, 255))
+			|| SQL_SUCCESS != SqlStmt_Execute(stmt)) {
 			SqlStmt_ShowDebug(stmt);
-			SQL->StmtFree(stmt);
+			SqlStmt_Free(stmt);
 			return;
 		}
-		SQL->StmtFree(stmt);
+		SqlStmt_Free(stmt);
 #endif
 	} else {
 		char timestring[255];
@@ -368,16 +368,16 @@ void log_npc(struct map_session_data *sd, const char *message)
 		queryThread_log(entry,e_length);
 #else
 		SqlStmt *stmt;
-		stmt = SQL->StmtMalloc(logmysql_handle);
-		if (SQL_SUCCESS != SQL->StmtPrepare(stmt, LOG_QUERY " INTO `%s` (`npc_date`, `account_id`, `char_id`, `char_name`, `map`, `mes`) VALUES (NOW(), '%d', '%d', ?, '%s', ?)", log_config.log_npc, sd->status.account_id, sd->status.char_id, mapindex_id2name(sd->mapindex))
-			|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 0, SQLDT_STRING, sd->status.name, strnlen(sd->status.name, NAME_LENGTH))
-			|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 1, SQLDT_STRING, (char *)message, safestrnlen(message, 255))
-			|| SQL_SUCCESS != SQL->StmtExecute(stmt)) {
+		stmt = SqlStmt_Malloc(logmysql_handle);
+		if (SQL_SUCCESS != SqlStmt_Prepare(stmt, LOG_QUERY " INTO `%s` (`npc_date`, `account_id`, `char_id`, `char_name`, `map`, `mes`) VALUES (NOW(), '%d', '%d', ?, '%s', ?)", log_config.log_npc, sd->status.account_id, sd->status.char_id, mapindex_id2name(sd->mapindex))
+			|| SQL_SUCCESS != SqlStmt_BindParam(stmt, 0, SQLDT_STRING, sd->status.name, strnlen(sd->status.name, NAME_LENGTH))
+			|| SQL_SUCCESS != SqlStmt_BindParam(stmt, 1, SQLDT_STRING, (char *)message, safestrnlen(message, 255))
+			|| SQL_SUCCESS != SqlStmt_Execute(stmt)) {
 			SqlStmt_ShowDebug(stmt);
-			SQL->StmtFree(stmt);
+			SqlStmt_Free(stmt);
 			return;
 		}
-		SQL->StmtFree(stmt);
+		SqlStmt_Free(stmt);
 #endif
 	} else {
 		char timestring[255];
@@ -416,16 +416,16 @@ void log_chat(e_log_chat_type type, int type_id, int src_charid, int src_accid, 
 #else
 		SqlStmt *stmt;
 
-		stmt = SQL->StmtMalloc(logmysql_handle);
-		if (SQL_SUCCESS != SQL->StmtPrepare(stmt, LOG_QUERY " INTO `%s` (`time`, `type`, `type_id`, `src_charid`, `src_accountid`, `src_map`, `src_map_x`, `src_map_y`, `dst_charname`, `message`) VALUES (NOW(), '%c', '%d', '%d', '%d', '%s', '%d', '%d', ?, ?)", log_config.log_chat, log_chattype2char(type), type_id, src_charid, src_accid, map, x, y)
-			|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 0, SQLDT_STRING, (char *)dst_charname, safestrnlen(dst_charname, NAME_LENGTH))
-			|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 1, SQLDT_STRING, (char *)message, safestrnlen(message, CHAT_SIZE_MAX))
-			|| SQL_SUCCESS != SQL->StmtExecute(stmt)) {
+		stmt = SqlStmt_Malloc(logmysql_handle);
+		if (SQL_SUCCESS != SqlStmt_Prepare(stmt, LOG_QUERY " INTO `%s` (`time`, `type`, `type_id`, `src_charid`, `src_accountid`, `src_map`, `src_map_x`, `src_map_y`, `dst_charname`, `message`) VALUES (NOW(), '%c', '%d', '%d', '%d', '%s', '%d', '%d', ?, ?)", log_config.log_chat, log_chattype2char(type), type_id, src_charid, src_accid, map, x, y)
+			|| SQL_SUCCESS != SqlStmt_BindParam(stmt, 0, SQLDT_STRING, (char *)dst_charname, safestrnlen(dst_charname, NAME_LENGTH))
+			|| SQL_SUCCESS != SqlStmt_BindParam(stmt, 1, SQLDT_STRING, (char *)message, safestrnlen(message, CHAT_SIZE_MAX))
+			|| SQL_SUCCESS != SqlStmt_Execute(stmt)) {
 			SqlStmt_ShowDebug(stmt);
-			SQL->StmtFree(stmt);
+			SqlStmt_Free(stmt);
 			return;
 		}
-		SQL->StmtFree(stmt);
+		SqlStmt_Free(stmt);
 #endif
 	} else {
 		char timestring[255];

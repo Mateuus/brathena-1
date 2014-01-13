@@ -1041,7 +1041,7 @@ void pc_bound_clear(struct map_session_data *sd, enum e_item_bound_type type);
 // Salva e atualiza as informações de um vip.
 #define save_vip(sd,x) \
 	sd->group_id = x; pc_set_group(sd, sd->group_id); \
-		if(SQL_ERROR == SQL->Query(mmysql_handle,"UPDATE `login` SET `group_id`=%d WHERE `account_id`='%d'", x, sd->status.account_id)) \
+		if(SQL_ERROR == Sql_Query(mmysql_handle,"UPDATE `login` SET `group_id`=%d WHERE `account_id`='%d'", x, sd->status.account_id)) \
 			Sql_ShowDebug(mmysql_handle);
 
 int check_time_vip(int tid, int64 tick, int id, intptr_t data);

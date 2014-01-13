@@ -503,11 +503,11 @@ int guild_recv_info(struct guild *sg)
 	DBData data;
 	struct map_session_data *sd;
 	bool guild_new = false;
-	void *aChSysSave = NULL;
+	struct raChSysCh *aChSysSave = NULL;
 
 	nullpo_ret(sg);
 
-	if((g = guild_search(sg->guild_id))==NULL) {
+	if((g = (struct guild*)idb_get(guild_db,sg->guild_id))==NULL) {
 		guild_new = true;
 		g=(struct guild *)aCalloc(1,sizeof(struct guild));
 		g->instance = NULL;
@@ -543,8 +543,8 @@ int guild_recv_info(struct guild *sg)
 								if(sg->alliance[i].guild_id == sd->status.guild_id) {
 									clif_chsys_join(channel,sd);
 								} else if( tg[i] != NULL ) {
-									if(!(((struct raChSysCh*)tg[i]->channel)->banned && idb_exists(((struct raChSysCh*)tg[i]->channel)->banned, sd->status.account_id)))
-										clif_chsys_join((struct raChSysCh*)tg[i]->channel,sd);
+									if(!(tg[i]->channel->banned && idb_exists(tg[i]->channel->banned, sd->status.account_id)))
+										clif_chsys_join(tg[i]->channel,sd);
 								} 
 							}
 						}
@@ -554,7 +554,7 @@ int guild_recv_info(struct guild *sg)
 				mapit_free(iter);
 			}
 
-			aChSysSave = (void*)channel;
+			aChSysSave = channel;
 
 		}
 		before=*sg;
@@ -771,15 +771,15 @@ void guild_member_joined(struct map_session_data *sd)
 
 		if( raChSys.ally && raChSys.ally_autojoin ) {
 			struct guild* sg = NULL;
-			struct raChSysCh *channel = (struct raChSysCh*)g->channel;
+			struct raChSysCh *channel = g->channel;
 
 			if( !(channel->banned && idb_exists(channel->banned, sd->status.account_id) ) )
 				clif_chsys_join(channel,sd);
 
 			for (i = 0; i < MAX_GUILDALLIANCE; i++) {
 				if(g->alliance[i].opposition == 0 && g->alliance[i].guild_id && (sg = guild_search(g->alliance[i].guild_id))) {
-					if( !(((struct raChSysCh*)sg->channel)->banned && idb_exists(((struct raChSysCh*)sg->channel)->banned, sd->status.account_id)))
-						clif_chsys_join((struct raChSysCh*)sg->channel,sd);
+					if( !(sg->channel->banned && idb_exists(sg->channel->banned, sd->status.account_id)))
+						clif_chsys_join(sg->channel,sd);
 				}
 			}
 		}
@@ -1806,7 +1806,7 @@ int guild_broken(int guild_id,int flag)
 	guild_storage_delete(guild_id);
 	if(raChSys.ally) {
 		if(g->channel != NULL) {
-			clif_chsys_delete(( struct raChSysCh * )g->channel);
+			clif_chsys_delete(g->channel);
 		}
 	}
 	if(g->instance)
@@ -2292,7 +2292,7 @@ void do_final_guild(void)
 
 	for(g = dbi_first(iter); dbi_exists(iter); g = dbi_next(iter)) {
 		if( g->channel != NULL )
-			clif_chsys_delete((struct raChSysCh *)g->channel);
+			clif_chsys_delete(g->channel);
 		if(g->instance != NULL) {
 			aFree(g->instance);
 			g->instance = NULL;

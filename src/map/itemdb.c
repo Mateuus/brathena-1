@@ -655,17 +655,17 @@ int itemdb_read_itemgroup_sub()
 
 	for(i = 0; i < ARRAYLENGTH(db); ++i) {
 		dbRows = 0;
-		if(SQL_ERROR == SQL->Query(dbmysql_handle, "SELECT * FROM `%s`", db[i])) {
+		if(SQL_ERROR == Sql_Query(dbmysql_handle, "SELECT * FROM `%s`", db[i])) {
 			Sql_ShowDebug(dbmysql_handle);
 			continue;
 		}
 
-		while(SQL_SUCCESS == SQL->NextRow(dbmysql_handle)) {
+		while(SQL_SUCCESS == Sql_NextRow(dbmysql_handle)) {
 			char *row[3];
 			dbRows++;
 
 			for(dbQuery = 0; dbQuery < 3; ++dbQuery)
-				SQL->GetData(dbmysql_handle, dbQuery, &row[dbQuery], NULL);
+				Sql_GetData(dbmysql_handle, dbQuery, &row[dbQuery], NULL);
 
 			groupid = atoi(row[0]);
 			if(groupid < 0 || groupid >= MAX_ITEMGROUP) {
@@ -692,7 +692,7 @@ int itemdb_read_itemgroup_sub()
 		ShowSQL("Leitura de '"CL_WHITE"%lu"CL_RESET"' entradas na tabela '"CL_WHITE"%s"CL_RESET"'.\n", dbRows, db[i]);
 	}
 
-	SQL->FreeResult(dbmysql_handle);
+	Sql_FreeResult(dbmysql_handle);
 	return 0;
 }
 
@@ -1356,16 +1356,16 @@ void itemdb_read_combos()
 	int items[MAX_ITEMS_PER_COMBO], v = 0, retcount = 0, idx = 0, rows = 0, i;
 	struct item_data *id = NULL;
 
-	if(SQL_ERROR == SQL->Query(dbmysql_handle, "SELECT * FROM `%s`", get_database_name(38))) {
+	if(SQL_ERROR == Sql_Query(dbmysql_handle, "SELECT * FROM `%s`", get_database_name(38))) {
 		Sql_ShowDebug(dbmysql_handle);
 		return;
 	}
 
-	while(SQL_SUCCESS == SQL->NextRow(dbmysql_handle)) {
+	while(SQL_SUCCESS == Sql_NextRow(dbmysql_handle)) {
 		char *row[2];
 
 		for(i = 0; i < 2; ++i)
-			SQL->GetData(dbmysql_handle, i, &row[i], NULL);
+			Sql_GetData(dbmysql_handle, i, &row[i], NULL);
 
 		if((retcount = itemdb_combo_split_atoi(row[0], items)) < 2) {
 			ShowError("itemdb_read_combos: Não tem elementos suficientes (min:2).\n");
@@ -1427,7 +1427,7 @@ void itemdb_read_combos()
 	}
 
 	ShowSQL("Leitura de '"CL_WHITE"%lu"CL_RESET"' entradas na tabela '"CL_WHITE"%s"CL_RESET"'.\n", rows, get_database_name(38));
-	SQL->FreeResult(dbmysql_handle);
+	Sql_FreeResult(dbmysql_handle);
 	return;
 }
 
@@ -1616,19 +1616,19 @@ static int itemdb_read_sqldb(void)
 	uint32 lines = 0, count = 0;
 
 	// retrieve all rows from the item database
-	if(SQL_ERROR == SQL->Query(dbmysql_handle, "SELECT * FROM `%s`", get_database_name(55))) {
+	if(SQL_ERROR == Sql_Query(dbmysql_handle, "SELECT * FROM `%s`", get_database_name(55))) {
 		Sql_ShowDebug(dbmysql_handle);
 		return -1;
 	}
 
 	// process rows one by one
-	while(SQL_SUCCESS == SQL->NextRow(dbmysql_handle)) {  // wrap the result into a TXT-compatible format
+	while(SQL_SUCCESS == Sql_NextRow(dbmysql_handle)) {  // wrap the result into a TXT-compatible format
 		char *str[22];
 		char *dummy = "";
 		int i;
 		++lines;
 		for(i = 0; i < 22; ++i) {
-			SQL->GetData(dbmysql_handle, i, &str[i], NULL);
+			Sql_GetData(dbmysql_handle, i, &str[i], NULL);
 			if(str[i] == NULL)
 				str[i] = dummy; // get rid of NULL columns
 		}
@@ -1639,7 +1639,7 @@ static int itemdb_read_sqldb(void)
 	}
 
 	// free the query result
-	SQL->FreeResult(dbmysql_handle);
+	Sql_FreeResult(dbmysql_handle);
 
 	ShowSQL("Leitura de '"CL_WHITE"%lu"CL_RESET"' entradas na tabela '"CL_WHITE"%s"CL_RESET"'.\n", count, get_database_name(55));
 
@@ -1674,18 +1674,18 @@ int itemdb_uid_load()
 {
 
 	char *uid;
-	if(SQL_ERROR == SQL->Query(mmysql_handle, "SELECT `value` FROM `interreg` WHERE `varname`='unique_id'"))
+	if(SQL_ERROR == Sql_Query(mmysql_handle, "SELECT `value` FROM `interreg` WHERE `varname`='unique_id'"))
 		Sql_ShowDebug(mmysql_handle);
 
-	if(SQL_SUCCESS != SQL->NextRow(mmysql_handle)) {
+	if(SQL_SUCCESS != Sql_NextRow(mmysql_handle)) {
 		ShowError("itemdb_uid_load: Unable to fetch unique_id data\n");
-		SQL->FreeResult(mmysql_handle);
+		Sql_FreeResult(mmysql_handle);
 		return -1;
 	}
 
-	SQL->GetData(mmysql_handle, 0, &uid, NULL);
+	Sql_GetData(mmysql_handle, 0, &uid, NULL);
 	itemdb_unique_id(1, (uint64)strtoull(uid, NULL, 10));
-	SQL->FreeResult(mmysql_handle);
+	Sql_FreeResult(mmysql_handle);
 
 	return 0;
 }

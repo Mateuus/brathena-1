@@ -5734,19 +5734,19 @@ void clif_chsys_gjoin(struct guild *g1,struct guild *g2) {
 	struct raChSysCh *channel;
 	int j;
 	
-	if((channel = (struct raChSysCh*)g1->channel)) {
+	if((channel = g1->channel)) {
 		for(j = 0; j < g2->max_member; j++) {
 			if((sd = g2->member[j].sd) != NULL) {
-				if(!(((struct raChSysCh*)g1->channel)->banned && idb_exists(((struct raChSysCh*)g1->channel)->banned, sd->status.account_id)))
+				if(!(g1->channel->banned && idb_exists(g1->channel->banned, sd->status.account_id)))
 					clif_chsys_join(channel,sd);
 			}
 		}
 	}
 	
-	if((channel = (struct raChSysCh*)g2->channel)) {
+	if((channel = g2->channel)) {
 		for(j = 0; j < g1->max_member; j++) {
 			if((sd = g1->member[j].sd) != NULL) {
-				if(!(((struct raChSysCh*)g2->channel)->banned && idb_exists(((struct raChSysCh*)g2->channel)->banned, sd->status.account_id)))
+				if(!(g2->channel->banned && idb_exists(g2->channel->banned, sd->status.account_id)))
 				clif_chsys_join(channel,sd);
 			}
 		}
@@ -5758,7 +5758,7 @@ void clif_chsys_gleave(struct guild *g1,struct guild *g2) {
 	struct raChSysCh *channel;
 	int j;
 	
-	if( (channel = (struct raChSysCh*)g1->channel) ) {
+	if( (channel = g1->channel) ) {
 		for(j = 0; j < g2->max_member; j++) {
 			if( (sd = g2->member[j].sd) != NULL ) {
 				clif_chsys_left(channel,sd);
@@ -5766,7 +5766,7 @@ void clif_chsys_gleave(struct guild *g1,struct guild *g2) {
 		}
 	}
 	
-	if((channel = (struct raChSysCh*)g2->channel)) {
+	if((channel = g2->channel)) {
 		for(j = 0; j < g1->max_member; j++) {
 			if((sd = g1->member[j].sd) != NULL) {
 				clif_chsys_left(channel,sd);
@@ -10444,7 +10444,7 @@ void clif_parse_WisMessage(int fd, struct map_session_data *sd)
 		} else if( raChSys.ally && sd->status.guild_id && strcmpi(chname, raChSys.ally_name) == 0 ) {
 			struct guild *g = sd->guild;
 			if( !g ) return;
-			channel = (struct raChSysCh *)g->channel;
+			channel = g->channel;
 		}
 		if( channel || (channel = strdb_get(channel_db,chname)) ) {
 			int k;
@@ -10459,8 +10459,8 @@ void clif_parse_WisMessage(int fd, struct map_session_data *sd)
 					struct guild *g = sd->guild, *sg = NULL;
 					for (k = 0; k < MAX_GUILDALLIANCE; k++) {
 						if(g->alliance[k].opposition == 0 && g->alliance[k].guild_id && (sg = guild_search(g->alliance[k].guild_id))) {
-							if(!(((struct raChSysCh*)sg->channel)->banned && idb_exists(((struct raChSysCh*)sg->channel)->banned, sd->status.account_id)))
-								clif_chsys_join((struct raChSysCh *)sg->channel,sd);
+							if(!(sg->channel->banned && idb_exists(sg->channel->banned, sd->status.account_id)))
+								clif_chsys_join(sg->channel,sd);
 						}
 					}
 				} 

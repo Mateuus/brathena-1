@@ -4354,11 +4354,6 @@ int pc_isUseitem(struct map_session_data *sd,int n)
 		return 0;
 	}
 
-	//Dead Branch & Bloody Branch & Porings Box
-	// FIXME: outdated, use constants or database
-	if(nameid == ITEMID_BRANCH_OF_DEAD_TREE || nameid == ITEMID_BLOODY_DEAD_BRANCH || nameid == ITEMID_PORING_BOX)
-		log_branch(sd);
-
 	return 1;
 }
 
@@ -4468,6 +4463,10 @@ int pc_useitem(struct map_session_data *sd,int n)
 		return 0;
 	     }
 	}
+
+	//Dead Branch & Bloody Branch & Porings Box
+	if(nameid == ITEMID_BRANCH_OF_DEAD_TREE || nameid == ITEMID_BLOODY_DEAD_BRANCH || nameid == ITEMID_PORING_BOX)
+		log_branch(sd);
 
 	sd->itemid = sd->status.inventory[n].nameid;
 	sd->itemindex = n;
@@ -8136,6 +8135,7 @@ void pc_setregstr(struct map_session_data* sd, int64 reg, const char* str) {
 		p = ers_alloc(pc_str_reg_ers, struct script_reg_str);
 
 		p->value = aStrdup(str);
+		p->flag.type = 1;
 
 		if( sd->var_db->put(sd->var_db,DB->i642key(reg),DB->ptr2data(p),&prev) ) {
 			p = DB->data2ptr(&prev);
@@ -10220,12 +10220,12 @@ int pc_readdb(void)
 	memset(statp,0,sizeof(statp));
 	i=1;
 
-	if(SQL_ERROR == SQL->Query(dbmysql_handle, "SELECT * FROM `%s`", get_database_name(53)))
+	if(SQL_ERROR == Sql_Query(dbmysql_handle, "SELECT * FROM `%s`", get_database_name(53)))
 		Sql_ShowDebug(dbmysql_handle);
 
-	while(SQL_SUCCESS == SQL->NextRow(dbmysql_handle)) {
+	while(SQL_SUCCESS == Sql_NextRow(dbmysql_handle)) {
 		int stat;
-		SQL->GetData(dbmysql_handle, 0, &row, NULL);
+		Sql_GetData(dbmysql_handle, 0, &row, NULL);
 
 		if(!(stat=atoi(row)))
 			stat = 0;
@@ -10237,7 +10237,7 @@ int pc_readdb(void)
 		i++;
 	}
 	ShowSQL("Leitura de '"CL_WHITE"%lu"CL_RESET"' entradas na tabela '"CL_WHITE"%s"CL_RESET"'.\n", (i > 1 ? i-1 : 0), get_database_name(53));
-	SQL->FreeResult(dbmysql_handle);
+	Sql_FreeResult(dbmysql_handle);
 
 	// generate the remaining parts of the db if necessary
 	k = battle_config.use_statpoint_table; //save setting
@@ -10457,18 +10457,18 @@ void pc_autotrade_load(void) {
 	struct map_session_data *sd;
 	char *data;
 
-	if(SQL_ERROR == SQL->Query(mmysql_handle, "SELECT `account_id`,`char_id`,`sex`,`title` FROM `%s`",autotrade_merchants_db))
+	if(SQL_ERROR == Sql_Query(mmysql_handle, "SELECT `account_id`,`char_id`,`sex`,`title` FROM `%s`",autotrade_merchants_db))
 		Sql_ShowDebug(mmysql_handle);
 
-	while(SQL_SUCCESS == SQL->NextRow(mmysql_handle)) {
+	while(SQL_SUCCESS == Sql_NextRow(mmysql_handle)) {
 		int account_id, char_id;
 		char title[MESSAGE_SIZE];
 		unsigned char sex;
 
-		SQL->GetData(mmysql_handle, 0, &data, NULL); account_id = atoi(data);
-		SQL->GetData(mmysql_handle, 1, &data, NULL); char_id = atoi(data);
-		SQL->GetData(mmysql_handle, 2, &data, NULL); sex = atoi(data);
-		SQL->GetData(mmysql_handle, 3, &data, NULL); safestrncpy(title, data, sizeof(title));
+		Sql_GetData(mmysql_handle, 0, &data, NULL); account_id = atoi(data);
+		Sql_GetData(mmysql_handle, 1, &data, NULL); char_id = atoi(data);
+		Sql_GetData(mmysql_handle, 2, &data, NULL); sex = atoi(data);
+		Sql_GetData(mmysql_handle, 3, &data, NULL); safestrncpy(title, data, sizeof(title));
 
 		CREATE(sd, TBL_PC, 1);
 
@@ -10482,7 +10482,7 @@ void pc_autotrade_load(void) {
 		chrif_authreq(sd,true);
 	}
 
-	SQL->FreeResult(mmysql_handle);
+	Sql_FreeResult(mmysql_handle);
 }
 /**
  * Loads vending data and sets it up, is triggered when char server data that pc_autotrade_load requested arrives
@@ -10492,15 +10492,15 @@ void pc_autotrade_start(struct map_session_data *sd) {
 	int i;
 	char *data;
 
-	if(SQL_ERROR == SQL->Query(mmysql_handle, "SELECT `itemkey`,`amount`,`price` FROM `%s` WHERE `char_id` = '%d'",autotrade_data_db,sd->status.char_id))
+	if(SQL_ERROR == Sql_Query(mmysql_handle, "SELECT `itemkey`,`amount`,`price` FROM `%s` WHERE `char_id` = '%d'",autotrade_data_db,sd->status.char_id))
 		Sql_ShowDebug(mmysql_handle);
 
-	while(SQL_SUCCESS == SQL->NextRow(mmysql_handle)) {
+	while(SQL_SUCCESS == Sql_NextRow(mmysql_handle)) {
 		int itemkey, amount, price;
 
-		SQL->GetData(mmysql_handle, 0, &data, NULL); itemkey = atoi(data);
-		SQL->GetData(mmysql_handle, 1, &data, NULL); amount = atoi(data);
-		SQL->GetData(mmysql_handle, 2, &data, NULL); price = atoi(data);
+		Sql_GetData(mmysql_handle, 0, &data, NULL); itemkey = atoi(data);
+		Sql_GetData(mmysql_handle, 1, &data, NULL); amount = atoi(data);
+		Sql_GetData(mmysql_handle, 2, &data, NULL); price = atoi(data);
 
 		ARR_FIND(0, MAX_CART, i, sd->status.cart[i].id == itemkey);
 
@@ -10539,17 +10539,17 @@ void pc_autotrade_update(struct map_session_data *sd, enum e_pc_autotrade_update
 
 	/* either way, this goes down */
 	if(action != PAUC_START) {
-		if(SQL_ERROR == SQL->Query(mmysql_handle, "DELETE FROM `%s` WHERE `char_id` = '%d'",autotrade_data_db,sd->status.char_id))
+		if(SQL_ERROR == Sql_Query(mmysql_handle, "DELETE FROM `%s` WHERE `char_id` = '%d'",autotrade_data_db,sd->status.char_id))
 			Sql_ShowDebug(mmysql_handle);
 	}
 
 	switch(action) {
 		case PAUC_REMOVE:
-			if(SQL_ERROR == SQL->Query(mmysql_handle, "DELETE FROM `%s` WHERE `char_id` = '%d' LIMIT 1",autotrade_merchants_db,sd->status.char_id))
+			if(SQL_ERROR == Sql_Query(mmysql_handle, "DELETE FROM `%s` WHERE `char_id` = '%d' LIMIT 1",autotrade_merchants_db,sd->status.char_id))
 				Sql_ShowDebug(mmysql_handle);
 			break;
 		case PAUC_START:
-			if(SQL_ERROR == SQL->Query(mmysql_handle, "INSERT INTO `%s` (`account_id`,`char_id`,`sex`,`title`) VALUES ('%d','%d','%d','%s')",
+			if(SQL_ERROR == Sql_Query(mmysql_handle, "INSERT INTO `%s` (`account_id`,`char_id`,`sex`,`title`) VALUES ('%d','%d','%d','%s')",
 										autotrade_merchants_db,
 										sd->status.account_id,
 										sd->status.char_id,
@@ -10563,7 +10563,7 @@ void pc_autotrade_update(struct map_session_data *sd, enum e_pc_autotrade_update
 				if(sd->vending[i].amount == 0)
 					continue;
 
-				if (SQL_ERROR == SQL->Query(mmysql_handle, "INSERT INTO `%s` (`char_id`,`itemkey`,`amount`,`price`) VALUES ('%d','%d','%d','%d')",
+				if (SQL_ERROR == Sql_Query(mmysql_handle, "INSERT INTO `%s` (`char_id`,`itemkey`,`amount`,`price`) VALUES ('%d','%d','%d','%d')",
 											autotrade_data_db,
 											sd->status.char_id,
 											sd->status.cart[sd->vending[i].index].id,
@@ -10708,9 +10708,9 @@ int do_init_pc(void)
 
 	pcg->init();
 
-	pc_sc_display_ers = ers_new(sizeof(struct sc_display_entry), "pc.c:sc_display_ers", ERS_OPT_NONE);
-	pc_num_reg_ers = ers_new(sizeof(struct script_reg_num), "pc.c::num_reg_ers", ERS_OPT_CLEAN);
-	pc_str_reg_ers = ers_new(sizeof(struct script_reg_str), "pc.c::str_reg_ers", ERS_OPT_CLEAN);
+	pc_sc_display_ers = ers_new(sizeof(struct sc_display_entry), "pc.c:sc_display_ers", ERS_OPT_FLEX_CHUNK);
+	pc_num_reg_ers = ers_new(sizeof(struct script_reg_num), "pc.c::num_reg_ers", ERS_OPT_CLEAN|ERS_OPT_FLEX_CHUNK);
+	pc_str_reg_ers = ers_new(sizeof(struct script_reg_str), "pc.c::str_reg_ers", ERS_OPT_CLEAN|ERS_OPT_FLEX_CHUNK);
 
 	ers_chunk_size(pc_sc_display_ers, 150);
 	ers_chunk_size(pc_num_reg_ers, 300);

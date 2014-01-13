@@ -559,6 +559,7 @@ struct guild_skill {
 	int id,lv;
 };
 
+struct raChSysCh;
 struct guild {
 	int guild_id;
 	short guild_lv, connect_member, max_member, average_lv;
@@ -581,7 +582,7 @@ struct guild {
 	short *instance;
 	unsigned short instances;
 
-	void *channel;
+	struct raChSysCh *channel;
 };
 
 struct guild_castle {

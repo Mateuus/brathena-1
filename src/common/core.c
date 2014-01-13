@@ -318,7 +318,6 @@ void core_defaults(void) {
 	strlib_defaults();
 	malloc_defaults();
 #ifndef MINICORE
-	sql_defaults();
 	db_defaults();
 #endif
 }

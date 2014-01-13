@@ -252,7 +252,7 @@ void set_char_online(int map_id, int char_id, int account_id)
 	struct mmo_charstatus *cp;
 
 	//Update DB
-	if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `online`='1' WHERE `char_id`='%d' LIMIT 1", char_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `online`='1' WHERE `char_id`='%d' LIMIT 1", char_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
 	//Check to see for online conflicts
@@ -294,7 +294,7 @@ void set_char_offline(int char_id, int account_id)
 	struct online_char_data *character;
 
 	if(char_id == -1) {
-		if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `online`='0' WHERE `account_id`='%d'", char_db, account_id))
+		if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `online`='0' WHERE `account_id`='%d'", char_db, account_id))
 			Sql_ShowDebug(sql_handle);
 	} else {
 		struct mmo_charstatus *cp = (struct mmo_charstatus *)idb_get(char_db_,char_id);
@@ -302,7 +302,7 @@ void set_char_offline(int char_id, int account_id)
 		if(cp)
 			idb_remove(char_db_,char_id);
 
-		if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `online`='0' WHERE `char_id`='%d' LIMIT 1", char_db, char_id))
+		if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `online`='0' WHERE `char_id`='%d' LIMIT 1", char_db, char_id))
 			Sql_ShowDebug(sql_handle);
 	}
 
@@ -395,11 +395,11 @@ void set_all_offline(int id)
 void set_all_offline_sql(void)
 {
 	//Set all players to 'OFFLINE'
-	if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `online` = '0'", char_db))
+	if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `online` = '0'", char_db))
 		Sql_ShowDebug(sql_handle);
-	if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `online` = '0'", guild_member_db))
+	if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `online` = '0'", guild_member_db))
 		Sql_ShowDebug(sql_handle);
-	if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `connect_member` = '0'", guild_db))
+	if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `connect_member` = '0'", guild_db))
 		Sql_ShowDebug(sql_handle);
 }
 
@@ -483,7 +483,7 @@ int mmo_char_tosql(int char_id, struct mmo_charstatus *p)
 	    if( p->show_equip )
 		opt |= OPT_SHOW_EQUIP;
 
-		if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `base_level`='%d', `job_level`='%d',"
+		if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `base_level`='%d', `job_level`='%d',"
 		                          "`base_exp`='%u', `job_exp`='%u', `zeny`='%d',"
 		                          "`max_hp`='%d',`hp`='%d',`max_sp`='%d',`sp`='%d',`status_point`='%d',`skill_point`='%d',"
 		                          "`str`='%d',`agi`='%d',`vit`='%d',`int`='%d',`dex`='%d',`luk`='%d',"
@@ -510,7 +510,7 @@ int mmo_char_tosql(int char_id, struct mmo_charstatus *p)
 	}
 
 	if(p->bank_vault != cp->bank_vault) {
-		if(SQL_ERROR == SQL->Query(sql_handle, "REPLACE INTO `%s` (`account_id`,`bank_vault`) VALUES ('%d','%d')",account_data_db,p->account_id,p->bank_vault)) {
+		if(SQL_ERROR == Sql_Query(sql_handle, "REPLACE INTO `%s` (`account_id`,`bank_vault`) VALUES ('%d','%d')",account_data_db,p->account_id,p->bank_vault)) {
 			Sql_ShowDebug(sql_handle);
 			errors++;
 		} else
@@ -526,7 +526,7 @@ int mmo_char_tosql(int char_id, struct mmo_charstatus *p)
 	    (p->karma != cp->karma) || (p->manner != cp->manner) ||
 	    (p->fame != cp->fame)
 	) {
-		if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `class`='%d',"
+		if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `class`='%d',"
 		                          "`hair`='%d',`hair_color`='%d',`clothes_color`='%d',"
 		                          "`partner_id`='%d', `father`='%d', `mother`='%d', `child`='%d',"
 		                          "`karma`='%d',`manner`='%d', `fame`='%d'"
@@ -558,7 +558,7 @@ int mmo_char_tosql(int char_id, struct mmo_charstatus *p)
 		char esc_mapname[NAME_LENGTH*2+1];
 
 		//`memo` (`memo_id`,`char_id`,`map`,`x`,`y`)
-		if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", memo_db, p->char_id)) {
+		if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", memo_db, p->char_id)) {
 			Sql_ShowDebug(sql_handle);
 			errors++;
 		}
@@ -570,13 +570,13 @@ int mmo_char_tosql(int char_id, struct mmo_charstatus *p)
 			if(p->memo_point[i].map) {
 				if(count)
 					StrBuf->AppendStr(&buf, ",");
-				SQL->EscapeString(sql_handle, esc_mapname, mapindex_id2name(p->memo_point[i].map));
+				Sql_EscapeString(sql_handle, esc_mapname, mapindex_id2name(p->memo_point[i].map));
 				StrBuf->Printf(&buf, "('%d', '%s', '%d', '%d')", char_id, esc_mapname, p->memo_point[i].x, p->memo_point[i].y);
 				++count;
 			}
 		}
 		if(count) {
-			if(SQL_ERROR == SQL->QueryStr(sql_handle, StrBuf->Value(&buf))) {
+			if(SQL_ERROR == Sql_QueryStr(sql_handle, StrBuf->Value(&buf))) {
 				Sql_ShowDebug(sql_handle);
 				errors++;
 			}
@@ -587,7 +587,7 @@ int mmo_char_tosql(int char_id, struct mmo_charstatus *p)
 	//skills
 	if(memcmp(p->skill, cp->skill, sizeof(p->skill))) {
 		//`skill` (`char_id`, `id`, `lv`)
-		if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", skill_db, p->char_id)) {
+		if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", skill_db, p->char_id)) {
 			Sql_ShowDebug(sql_handle);
 			errors++;
 		}
@@ -611,7 +611,7 @@ int mmo_char_tosql(int char_id, struct mmo_charstatus *p)
 			}
 		}
 		if(count) {
-			if(SQL_ERROR == SQL->QueryStr(sql_handle, StrBuf->Value(&buf))) {
+			if(SQL_ERROR == Sql_QueryStr(sql_handle, StrBuf->Value(&buf))) {
 				Sql_ShowDebug(sql_handle);
 				errors++;
 			}
@@ -631,7 +631,7 @@ int mmo_char_tosql(int char_id, struct mmo_charstatus *p)
 
 	if(diff == 1) {
 		//Save friends
-		if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", friend_db, char_id)) {
+		if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", friend_db, char_id)) {
 			Sql_ShowDebug(sql_handle);
 			errors++;
 		}
@@ -647,7 +647,7 @@ int mmo_char_tosql(int char_id, struct mmo_charstatus *p)
 			}
 		}
 		if(count) {
-			if(SQL_ERROR == SQL->QueryStr(sql_handle, StrBuf->Value(&buf))) {
+			if(SQL_ERROR == Sql_QueryStr(sql_handle, StrBuf->Value(&buf))) {
 				Sql_ShowDebug(sql_handle);
 				errors++;
 			}
@@ -669,7 +669,7 @@ int mmo_char_tosql(int char_id, struct mmo_charstatus *p)
 		}
 	}
 	if(diff) {
-		if(SQL_ERROR == SQL->QueryStr(sql_handle, StrBuf->Value(&buf))) {
+		if(SQL_ERROR == Sql_QueryStr(sql_handle, StrBuf->Value(&buf))) {
 			Sql_ShowDebug(sql_handle);
 			errors++;
 		} else
@@ -720,31 +720,31 @@ int memitemdata_to_sql(const struct item items[], int max, int id, int tableswit
 		StrBuf->Printf(&buf, ", `card%d`", j);
 	StrBuf->Printf(&buf, " FROM `%s` WHERE `%s`='%d'", tablename, selectoption, id);
 
-	stmt = SQL->StmtMalloc(sql_handle);
-	if(SQL_ERROR == SQL->StmtPrepareStr(stmt, StrBuf->Value(&buf))
-	   ||  SQL_ERROR == SQL->StmtExecute(stmt)) {
+	stmt = SqlStmt_Malloc(sql_handle);
+	if(SQL_ERROR == SqlStmt_PrepareStr(stmt, StrBuf->Value(&buf))
+	   ||  SQL_ERROR == SqlStmt_Execute(stmt)) {
 		SqlStmt_ShowDebug(stmt);
-		SQL->StmtFree(stmt);
+		SqlStmt_Free(stmt);
 		StrBuf->Destroy(&buf);
 		return 1;
 	}
 
-	SQL->StmtBindColumn(stmt, 0, SQLDT_INT,       &item.id,          0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 1, SQLDT_SHORT,     &item.nameid,      0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 2, SQLDT_SHORT,     &item.amount,      0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 3, SQLDT_UINT,      &item.equip,       0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 4, SQLDT_CHAR,      &item.identify,    0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 5, SQLDT_CHAR,      &item.refine,      0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 6, SQLDT_CHAR,      &item.attribute,   0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 7, SQLDT_UINT,      &item.expire_time, 0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 8, SQLDT_UCHAR,     &item.bound,       0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 0, SQLDT_INT,       &item.id,          0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 1, SQLDT_SHORT,     &item.nameid,      0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 2, SQLDT_SHORT,     &item.amount,      0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 3, SQLDT_UINT,      &item.equip,       0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 4, SQLDT_CHAR,      &item.identify,    0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 5, SQLDT_CHAR,      &item.refine,      0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 6, SQLDT_CHAR,      &item.attribute,   0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 7, SQLDT_UINT,      &item.expire_time, 0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 8, SQLDT_UCHAR,     &item.bound,       0, NULL, NULL);
 	for(j = 0; j < MAX_SLOTS; ++j)
-		SQL->StmtBindColumn(stmt, 9+j, SQLDT_SHORT, &item.card[j], 0, NULL, NULL);
+		SqlStmt_BindColumn(stmt, 9+j, SQLDT_SHORT, &item.card[j], 0, NULL, NULL);
 
 	// bit array indicating which inventory items have already been matched
 	flag = (bool *) aCalloc(max, sizeof(bool));
 
-	while(SQL_SUCCESS == SQL->StmtNextRow(stmt)) {
+	while(SQL_SUCCESS == SqlStmt_NextRow(stmt)) {
 		found = false;
 		// search for the presence of the item in the char's inventory
 		for(i = 0; i < max; ++i) {
@@ -776,7 +776,7 @@ int memitemdata_to_sql(const struct item items[], int max, int id, int tableswit
 						StrBuf->Printf(&buf, ", `card%d`=%d", j, items[i].card[j]);
 					StrBuf->Printf(&buf, " WHERE `id`='%d' LIMIT 1", item.id);
 
-					if(SQL_ERROR == SQL->QueryStr(sql_handle, StrBuf->Value(&buf))) {
+					if(SQL_ERROR == Sql_QueryStr(sql_handle, StrBuf->Value(&buf))) {
 						Sql_ShowDebug(sql_handle);
 						errors++;
 					}
@@ -788,13 +788,13 @@ int memitemdata_to_sql(const struct item items[], int max, int id, int tableswit
 		}
 		if(!found) {
 			// Item not present in inventory, remove it.
-			if(SQL_ERROR == SQL->Query(sql_handle, "DELETE from `%s` where `id`='%d' LIMIT 1", tablename, item.id)) {
+			if(SQL_ERROR == Sql_Query(sql_handle, "DELETE from `%s` where `id`='%d' LIMIT 1", tablename, item.id)) {
 				Sql_ShowDebug(sql_handle);
 				errors++;
 			}
 		}
 	}
-	SQL->StmtFree(stmt);
+	SqlStmt_Free(stmt);
 
 	StrBuf->Clear(&buf);
 	StrBuf->Printf(&buf, "INSERT INTO `%s`(`%s`, `nameid`, `amount`, `equip`, `identify`, `refine`, `attribute`, `expire_time`, `bound`, `unique_id`", tablename, selectoption);
@@ -824,7 +824,7 @@ int memitemdata_to_sql(const struct item items[], int max, int id, int tableswit
 	}
 	dbUpdateUid(sql_handle); // Unique Non Stackable Item ID
 
-	if(found && SQL_ERROR == SQL->QueryStr(sql_handle, StrBuf->Value(&buf))) {
+	if(found && SQL_ERROR == Sql_QueryStr(sql_handle, StrBuf->Value(&buf))) {
 		Sql_ShowDebug(sql_handle);
 		errors++;
 	}
@@ -859,32 +859,32 @@ int inventory_to_sql(const struct item items[], int max, int id)
 		StrBuf->Printf(&buf, ", `card%d`", j);
 	StrBuf->Printf(&buf, " FROM `%s` WHERE `char_id`='%d'", inventory_db, id);
 
-	stmt = SQL->StmtMalloc(sql_handle);
-	if(SQL_ERROR == SQL->StmtPrepareStr(stmt, StrBuf->Value(&buf))
-	   ||  SQL_ERROR == SQL->StmtExecute(stmt)) {
+	stmt = SqlStmt_Malloc(sql_handle);
+	if(SQL_ERROR == SqlStmt_PrepareStr(stmt, StrBuf->Value(&buf))
+	   ||  SQL_ERROR == SqlStmt_Execute(stmt)) {
 		SqlStmt_ShowDebug(stmt);
-		SQL->StmtFree(stmt);
+		SqlStmt_Free(stmt);
 		StrBuf->Destroy(&buf);
 		return 1;
 	}
 
-	SQL->StmtBindColumn(stmt, 0, SQLDT_INT,       &item.id,          0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 1, SQLDT_SHORT,     &item.nameid,      0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 2, SQLDT_SHORT,     &item.amount,      0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 3, SQLDT_UINT,      &item.equip,       0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 4, SQLDT_CHAR,      &item.identify,    0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 5, SQLDT_CHAR,      &item.refine,      0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 6, SQLDT_CHAR,      &item.attribute,   0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 7, SQLDT_UINT,      &item.expire_time, 0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 8, SQLDT_CHAR,      &item.favorite,    0, NULL, NULL);
-	SQL->StmtBindColumn(stmt, 9, SQLDT_UCHAR,     &item.bound,       0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 0, SQLDT_INT,       &item.id,          0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 1, SQLDT_SHORT,     &item.nameid,      0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 2, SQLDT_SHORT,     &item.amount,      0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 3, SQLDT_UINT,      &item.equip,       0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 4, SQLDT_CHAR,      &item.identify,    0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 5, SQLDT_CHAR,      &item.refine,      0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 6, SQLDT_CHAR,      &item.attribute,   0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 7, SQLDT_UINT,      &item.expire_time, 0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 8, SQLDT_CHAR,      &item.favorite,    0, NULL, NULL);
+	SqlStmt_BindColumn(stmt, 9, SQLDT_UCHAR,     &item.bound,       0, NULL, NULL);
 	for(j = 0; j < MAX_SLOTS; ++j)
-		SQL->StmtBindColumn(stmt, 10+j, SQLDT_SHORT, &item.card[j], 0, NULL, NULL);
+		SqlStmt_BindColumn(stmt, 10+j, SQLDT_SHORT, &item.card[j], 0, NULL, NULL);
 
 	// bit array indicating which inventory items have already been matched
 	flag = (bool *) aCalloc(max, sizeof(bool));
 
-	while(SQL_SUCCESS == SQL->StmtNextRow(stmt)) {
+	while(SQL_SUCCESS == SqlStmt_NextRow(stmt)) {
 		found = false;
 		// search for the presence of the item in the char's inventory
 		for(i = 0; i < max; ++i) {
@@ -917,7 +917,7 @@ int inventory_to_sql(const struct item items[], int max, int id)
 						StrBuf->Printf(&buf, ", `card%d`=%d", j, items[i].card[j]);
 					StrBuf->Printf(&buf, " WHERE `id`='%d' LIMIT 1", item.id);
 
-					if(SQL_ERROR == SQL->QueryStr(sql_handle, StrBuf->Value(&buf))) {
+					if(SQL_ERROR == Sql_QueryStr(sql_handle, StrBuf->Value(&buf))) {
 						Sql_ShowDebug(sql_handle);
 						errors++;
 					}
@@ -928,13 +928,13 @@ int inventory_to_sql(const struct item items[], int max, int id)
 			}
 		}
 		if(!found) {  // Item not present in inventory, remove it.
-			if(SQL_ERROR == SQL->Query(sql_handle, "DELETE from `%s` where `id`='%d' LIMIT 1", inventory_db, item.id)) {
+			if(SQL_ERROR == Sql_Query(sql_handle, "DELETE from `%s` where `id`='%d' LIMIT 1", inventory_db, item.id)) {
 				Sql_ShowDebug(sql_handle);
 				errors++;
 			}
 		}
 	}
-	SQL->StmtFree(stmt);
+	SqlStmt_Free(stmt);
 
 	StrBuf->Clear(&buf);
 	StrBuf->Printf(&buf, "INSERT INTO `%s` (`char_id`, `nameid`, `amount`, `equip`, `identify`, `refine`, `attribute`, `expire_time`, `favorite`, `bound`, `unique_id`", inventory_db);
@@ -964,7 +964,7 @@ int inventory_to_sql(const struct item items[], int max, int id)
 	}
 	dbUpdateUid(sql_handle);
 
-	if(found && SQL_ERROR == SQL->QueryStr(sql_handle, StrBuf->Value(&buf))) {
+	if(found && SQL_ERROR == Sql_QueryStr(sql_handle, StrBuf->Value(&buf))) {
 		Sql_ShowDebug(sql_handle);
 		errors++;
 	}
@@ -988,7 +988,7 @@ int mmo_chars_fromsql(struct char_session_data *sd, uint8 *buf)
 	char last_map[MAP_NAME_LENGTH_EXT];
 	time_t unban_time = 0;
 
-	stmt = SQL->StmtMalloc(sql_handle);
+	stmt = SqlStmt_Malloc(sql_handle);
 	if(stmt == NULL) {
 		SqlStmt_ShowDebug(stmt);
 		return 0;
@@ -1001,59 +1001,59 @@ int mmo_chars_fromsql(struct char_session_data *sd, uint8 *buf)
 	}
 
 	// read char data
-	if(SQL_ERROR == SQL->StmtPrepare(stmt, "SELECT "
+	if(SQL_ERROR == SqlStmt_Prepare(stmt, "SELECT "
 	                                "`char_id`,`char_num`,`name`,`class`,`base_level`,`job_level`,`base_exp`,`job_exp`,`zeny`,"
 	                                "`str`,`agi`,`vit`,`int`,`dex`,`luk`,`max_hp`,`hp`,`max_sp`,`sp`,"
 	                                "`status_point`,`skill_point`,`option`,`karma`,`manner`,`hair`,`hair_color`,"
 	                                "`clothes_color`,`weapon`,`shield`,`head_top`,`head_mid`,`head_bottom`,`last_map`,`rename`,`delete_date`,"
 	                                "`robe`,`slotchange`,`unban_time`"
 	                                " FROM `%s` WHERE `account_id`='%d' AND `char_num` < '%d'", char_db, sd->account_id, MAX_CHARS)
-	   ||  SQL_ERROR == SQL->StmtExecute(stmt)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 0,  SQLDT_INT,    &p.char_id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 1,  SQLDT_UCHAR,  &p.slot, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 2,  SQLDT_STRING, &p.name, sizeof(p.name), NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 3,  SQLDT_SHORT,  &p.class_, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 4,  SQLDT_UINT,   &p.base_level, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 5,  SQLDT_UINT,   &p.job_level, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 6,  SQLDT_UINT,   &p.base_exp, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 7,  SQLDT_UINT,   &p.job_exp, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 8,  SQLDT_INT,    &p.zeny, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 9,  SQLDT_SHORT,  &p.str, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 10, SQLDT_SHORT,  &p.agi, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 11, SQLDT_SHORT,  &p.vit, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 12, SQLDT_SHORT,  &p.int_, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 13, SQLDT_SHORT,  &p.dex, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 14, SQLDT_SHORT,  &p.luk, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 15, SQLDT_INT,    &p.max_hp, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 16, SQLDT_INT,    &p.hp, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 17, SQLDT_INT,    &p.max_sp, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 18, SQLDT_INT,    &p.sp, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 19, SQLDT_UINT,   &p.status_point, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 20, SQLDT_UINT,   &p.skill_point, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 21, SQLDT_UINT,   &p.option, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 22, SQLDT_UCHAR,  &p.karma, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 23, SQLDT_SHORT,  &p.manner, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 24, SQLDT_SHORT,  &p.hair, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 25, SQLDT_SHORT,  &p.hair_color, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 26, SQLDT_SHORT,  &p.clothes_color, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 27, SQLDT_SHORT,  &p.weapon, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 28, SQLDT_SHORT,  &p.shield, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 29, SQLDT_SHORT,  &p.head_top, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 30, SQLDT_SHORT,  &p.head_mid, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 31, SQLDT_SHORT,  &p.head_bottom, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 32, SQLDT_STRING, &last_map, sizeof(last_map), NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 33, SQLDT_USHORT, &p.rename, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 34, SQLDT_UINT32, &p.delete_date, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 35, SQLDT_SHORT,  &p.robe, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 36, SQLDT_USHORT, &p.slotchange, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 37, SQLDT_LONG,   &unban_time, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_Execute(stmt)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 0,  SQLDT_INT,    &p.char_id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 1,  SQLDT_UCHAR,  &p.slot, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 2,  SQLDT_STRING, &p.name, sizeof(p.name), NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 3,  SQLDT_SHORT,  &p.class_, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 4,  SQLDT_UINT,   &p.base_level, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 5,  SQLDT_UINT,   &p.job_level, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 6,  SQLDT_UINT,   &p.base_exp, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 7,  SQLDT_UINT,   &p.job_exp, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 8,  SQLDT_INT,    &p.zeny, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 9,  SQLDT_SHORT,  &p.str, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 10, SQLDT_SHORT,  &p.agi, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 11, SQLDT_SHORT,  &p.vit, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 12, SQLDT_SHORT,  &p.int_, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 13, SQLDT_SHORT,  &p.dex, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 14, SQLDT_SHORT,  &p.luk, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 15, SQLDT_INT,    &p.max_hp, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 16, SQLDT_INT,    &p.hp, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 17, SQLDT_INT,    &p.max_sp, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 18, SQLDT_INT,    &p.sp, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 19, SQLDT_UINT,   &p.status_point, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 20, SQLDT_UINT,   &p.skill_point, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 21, SQLDT_UINT,   &p.option, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 22, SQLDT_UCHAR,  &p.karma, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 23, SQLDT_SHORT,  &p.manner, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 24, SQLDT_SHORT,  &p.hair, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 25, SQLDT_SHORT,  &p.hair_color, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 26, SQLDT_SHORT,  &p.clothes_color, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 27, SQLDT_SHORT,  &p.weapon, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 28, SQLDT_SHORT,  &p.shield, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 29, SQLDT_SHORT,  &p.head_top, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 30, SQLDT_SHORT,  &p.head_mid, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 31, SQLDT_SHORT,  &p.head_bottom, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 32, SQLDT_STRING, &last_map, sizeof(last_map), NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 33, SQLDT_USHORT, &p.rename, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 34, SQLDT_UINT32, &p.delete_date, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 35, SQLDT_SHORT,  &p.robe, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 36, SQLDT_USHORT, &p.slotchange, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 37, SQLDT_LONG,   &unban_time, 0, NULL, NULL)
 	  ) {
 		SqlStmt_ShowDebug(stmt);
-		SQL->StmtFree(stmt);
+		SqlStmt_Free(stmt);
 		return 0;
 	}
 
-	for(i = 0; i < MAX_CHARS && SQL_SUCCESS == SQL->StmtNextRow(stmt); i++) {
+	for(i = 0; i < MAX_CHARS && SQL_SUCCESS == SqlStmt_NextRow(stmt); i++) {
 		p.last_point.map = mapindex->name2id(last_map);
 		sd->found_char[p.slot] = p.char_id;
 		sd->unban_time[p.slot] = unban_time;
@@ -1062,7 +1062,7 @@ int mmo_chars_fromsql(struct char_session_data *sd, uint8 *buf)
 
 	memset(sd->new_name,0,sizeof(sd->new_name));
 
-	SQL->StmtFree(stmt);
+	SqlStmt_Free(stmt);
 	return j;
 }
 
@@ -1092,14 +1092,14 @@ int mmo_char_fromsql(int char_id, struct mmo_charstatus *p, bool load_everything
 
 	if(save_log) ShowInfo(read_message("Source.char.char_mmo_char_fromsql_s1"), char_id);
 
-	stmt = SQL->StmtMalloc(sql_handle);
+	stmt = SqlStmt_Malloc(sql_handle);
 	if(stmt == NULL) {
 		SqlStmt_ShowDebug(stmt);
 		return 0;
 	}
 
 	// read char data
-	if(SQL_ERROR == SQL->StmtPrepare(stmt, "SELECT "
+	if(SQL_ERROR == SqlStmt_Prepare(stmt, "SELECT "
 	                                "`char_id`,`account_id`,`char_num`,`name`,`class`,`base_level`,`job_level`,`base_exp`,`job_exp`,`zeny`,"
 	                                "`str`,`agi`,`vit`,`int`,`dex`,`luk`,`max_hp`,`hp`,`max_sp`,`sp`,"
 	                                "`status_point`,`skill_point`,`option`,`karma`,`manner`,`party_id`,`guild_id`,`pet_id`,`homun_id`,`elemental_id`,`hair`,"
@@ -1107,71 +1107,71 @@ int mmo_char_fromsql(int char_id, struct mmo_charstatus *p, bool load_everything
 	                                "`save_map`,`save_x`,`save_y`,`partner_id`,`father`,`mother`,`child`,`fame`,`rename`,`delete_date`,`robe`,`slotchange`,"
 					"`char_opt`,`font`"
 	                                " FROM `%s` WHERE `char_id`=? LIMIT 1", char_db)
-	   ||  SQL_ERROR == SQL->StmtBindParam(stmt, 0, SQLDT_INT, &char_id, 0)
-	   ||  SQL_ERROR == SQL->StmtExecute(stmt)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 0,  SQLDT_INT,    &p->char_id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 1,  SQLDT_INT,    &p->account_id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 2,  SQLDT_UCHAR,  &p->slot, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 3,  SQLDT_STRING, &p->name, sizeof(p->name), NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 4,  SQLDT_SHORT,  &p->class_, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 5,  SQLDT_UINT,   &p->base_level, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 6,  SQLDT_UINT,   &p->job_level, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 7,  SQLDT_UINT,   &p->base_exp, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 8,  SQLDT_UINT,   &p->job_exp, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 9,  SQLDT_INT,    &p->zeny, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 10, SQLDT_SHORT,  &p->str, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 11, SQLDT_SHORT,  &p->agi, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 12, SQLDT_SHORT,  &p->vit, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 13, SQLDT_SHORT,  &p->int_, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 14, SQLDT_SHORT,  &p->dex, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 15, SQLDT_SHORT,  &p->luk, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 16, SQLDT_INT,    &p->max_hp, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 17, SQLDT_INT,    &p->hp, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 18, SQLDT_INT,    &p->max_sp, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 19, SQLDT_INT,    &p->sp, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 20, SQLDT_UINT,   &p->status_point, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 21, SQLDT_UINT,   &p->skill_point, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 22, SQLDT_UINT,   &p->option, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 23, SQLDT_UCHAR,  &p->karma, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 24, SQLDT_SHORT,  &p->manner, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 25, SQLDT_INT,    &p->party_id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 26, SQLDT_INT,    &p->guild_id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 27, SQLDT_INT,    &p->pet_id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 28, SQLDT_INT,    &p->hom_id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 29, SQLDT_INT,    &p->ele_id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 30, SQLDT_SHORT,  &p->hair, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 31, SQLDT_SHORT,  &p->hair_color, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 32, SQLDT_SHORT,  &p->clothes_color, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 33, SQLDT_SHORT,  &p->weapon, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 34, SQLDT_SHORT,  &p->shield, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 35, SQLDT_SHORT,  &p->head_top, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 36, SQLDT_SHORT,  &p->head_mid, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 37, SQLDT_SHORT,  &p->head_bottom, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 38, SQLDT_STRING, &last_map, sizeof(last_map), NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 39, SQLDT_SHORT,  &p->last_point.x, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 40, SQLDT_SHORT,  &p->last_point.y, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 41, SQLDT_STRING, &save_map, sizeof(save_map), NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 42, SQLDT_SHORT,  &p->save_point.x, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 43, SQLDT_SHORT,  &p->save_point.y, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 44, SQLDT_INT,    &p->partner_id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 45, SQLDT_INT,    &p->father, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 46, SQLDT_INT,    &p->mother, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 47, SQLDT_INT,    &p->child, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 48, SQLDT_INT,    &p->fame, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 49, SQLDT_USHORT, &p->rename, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 50, SQLDT_UINT32, &p->delete_date, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 51, SQLDT_SHORT,  &p->robe, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 52, SQLDT_USHORT, &p->slotchange, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 53, SQLDT_UINT,   &opt, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 54, SQLDT_UCHAR,  &p->font, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindParam(stmt, 0, SQLDT_INT, &char_id, 0)
+	   ||  SQL_ERROR == SqlStmt_Execute(stmt)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 0,  SQLDT_INT,    &p->char_id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 1,  SQLDT_INT,    &p->account_id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 2,  SQLDT_UCHAR,  &p->slot, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 3,  SQLDT_STRING, &p->name, sizeof(p->name), NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 4,  SQLDT_SHORT,  &p->class_, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 5,  SQLDT_UINT,   &p->base_level, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 6,  SQLDT_UINT,   &p->job_level, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 7,  SQLDT_UINT,   &p->base_exp, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 8,  SQLDT_UINT,   &p->job_exp, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 9,  SQLDT_INT,    &p->zeny, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 10, SQLDT_SHORT,  &p->str, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 11, SQLDT_SHORT,  &p->agi, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 12, SQLDT_SHORT,  &p->vit, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 13, SQLDT_SHORT,  &p->int_, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 14, SQLDT_SHORT,  &p->dex, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 15, SQLDT_SHORT,  &p->luk, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 16, SQLDT_INT,    &p->max_hp, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 17, SQLDT_INT,    &p->hp, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 18, SQLDT_INT,    &p->max_sp, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 19, SQLDT_INT,    &p->sp, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 20, SQLDT_UINT,   &p->status_point, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 21, SQLDT_UINT,   &p->skill_point, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 22, SQLDT_UINT,   &p->option, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 23, SQLDT_UCHAR,  &p->karma, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 24, SQLDT_SHORT,  &p->manner, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 25, SQLDT_INT,    &p->party_id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 26, SQLDT_INT,    &p->guild_id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 27, SQLDT_INT,    &p->pet_id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 28, SQLDT_INT,    &p->hom_id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 29, SQLDT_INT,    &p->ele_id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 30, SQLDT_SHORT,  &p->hair, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 31, SQLDT_SHORT,  &p->hair_color, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 32, SQLDT_SHORT,  &p->clothes_color, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 33, SQLDT_SHORT,  &p->weapon, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 34, SQLDT_SHORT,  &p->shield, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 35, SQLDT_SHORT,  &p->head_top, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 36, SQLDT_SHORT,  &p->head_mid, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 37, SQLDT_SHORT,  &p->head_bottom, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 38, SQLDT_STRING, &last_map, sizeof(last_map), NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 39, SQLDT_SHORT,  &p->last_point.x, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 40, SQLDT_SHORT,  &p->last_point.y, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 41, SQLDT_STRING, &save_map, sizeof(save_map), NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 42, SQLDT_SHORT,  &p->save_point.x, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 43, SQLDT_SHORT,  &p->save_point.y, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 44, SQLDT_INT,    &p->partner_id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 45, SQLDT_INT,    &p->father, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 46, SQLDT_INT,    &p->mother, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 47, SQLDT_INT,    &p->child, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 48, SQLDT_INT,    &p->fame, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 49, SQLDT_USHORT, &p->rename, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 50, SQLDT_UINT32, &p->delete_date, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 51, SQLDT_SHORT,  &p->robe, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 52, SQLDT_USHORT, &p->slotchange, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 53, SQLDT_UINT,   &opt, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 54, SQLDT_UCHAR,  &p->font, 0, NULL, NULL)
 	  ) {
 		SqlStmt_ShowDebug(stmt);
-		SQL->StmtFree(stmt);
+		SqlStmt_Free(stmt);
 		return 0;
 	}
-	if(SQL_ERROR == SQL->StmtNextRow(stmt)) {
+	if(SQL_ERROR == SqlStmt_NextRow(stmt)) {
 		ShowError(read_message("Source.char.char_mmo_char_fromsql_s2"), char_id);
-		SQL->StmtFree(stmt);
+		SqlStmt_Free(stmt);
 		return 0;
 	}
 
@@ -1195,21 +1195,21 @@ int mmo_char_fromsql(int char_id, struct mmo_charstatus *p, bool load_everything
 	strcat(t_msg, " status");
 
 	if(!load_everything) { // For quick selection of data when displaying the char menu
-		SQL->StmtFree(stmt);
+		SqlStmt_Free(stmt);
 		return 1;
 	}
 
 	//read memo data
 	//`memo` (`memo_id`,`char_id`,`map`,`x`,`y`)
-	if(SQL_ERROR == SQL->StmtPrepare(stmt, "SELECT `map`,`x`,`y` FROM `%s` WHERE `char_id`=? ORDER by `memo_id` LIMIT %d", memo_db, MAX_MEMOPOINTS)
-	   ||  SQL_ERROR == SQL->StmtBindParam(stmt, 0, SQLDT_INT, &char_id, 0)
-	   ||  SQL_ERROR == SQL->StmtExecute(stmt)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 0, SQLDT_STRING, &point_map, sizeof(point_map), NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 1, SQLDT_SHORT,  &tmp_point.x, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 2, SQLDT_SHORT,  &tmp_point.y, 0, NULL, NULL))
+	if(SQL_ERROR == SqlStmt_Prepare(stmt, "SELECT `map`,`x`,`y` FROM `%s` WHERE `char_id`=? ORDER by `memo_id` LIMIT %d", memo_db, MAX_MEMOPOINTS)
+	   ||  SQL_ERROR == SqlStmt_BindParam(stmt, 0, SQLDT_INT, &char_id, 0)
+	   ||  SQL_ERROR == SqlStmt_Execute(stmt)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 0, SQLDT_STRING, &point_map, sizeof(point_map), NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 1, SQLDT_SHORT,  &tmp_point.x, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 2, SQLDT_SHORT,  &tmp_point.y, 0, NULL, NULL))
 		SqlStmt_ShowDebug(stmt);
 
-	for(i = 0; i < MAX_MEMOPOINTS && SQL_SUCCESS == SQL->StmtNextRow(stmt); ++i) {
+	for(i = 0; i < MAX_MEMOPOINTS && SQL_SUCCESS == SqlStmt_NextRow(stmt); ++i) {
 		tmp_point.map = mapindex->name2id(point_map);
 		memcpy(&p->memo_point[i], &tmp_point, sizeof(tmp_point));
 	}
@@ -1223,26 +1223,26 @@ int mmo_char_fromsql(int char_id, struct mmo_charstatus *p, bool load_everything
 		StrBuf->Printf(&buf, ", `card%d`", i);
 	StrBuf->Printf(&buf, " FROM `%s` WHERE `char_id`=? LIMIT %d", inventory_db, MAX_INVENTORY);
 
-	if(SQL_ERROR == SQL->StmtPrepareStr(stmt, StrBuf->Value(&buf))
-	   ||  SQL_ERROR == SQL->StmtBindParam(stmt, 0, SQLDT_INT, &char_id, 0)
-	   ||  SQL_ERROR == SQL->StmtExecute(stmt)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 0, SQLDT_INT,       &tmp_item.id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 1, SQLDT_SHORT,     &tmp_item.nameid, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 2, SQLDT_SHORT,     &tmp_item.amount, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 3, SQLDT_UINT,      &tmp_item.equip, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 4, SQLDT_CHAR,      &tmp_item.identify, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 5, SQLDT_CHAR,      &tmp_item.refine, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 6, SQLDT_CHAR,      &tmp_item.attribute, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 7, SQLDT_UINT,      &tmp_item.expire_time, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 8, SQLDT_CHAR,      &tmp_item.favorite, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 9, SQLDT_UCHAR,     &tmp_item.bound,    0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 10, SQLDT_UINT64,   &tmp_item.unique_id,0, NULL, NULL))
+	if(SQL_ERROR == SqlStmt_PrepareStr(stmt, StrBuf->Value(&buf))
+	   ||  SQL_ERROR == SqlStmt_BindParam(stmt, 0, SQLDT_INT, &char_id, 0)
+	   ||  SQL_ERROR == SqlStmt_Execute(stmt)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 0, SQLDT_INT,       &tmp_item.id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 1, SQLDT_SHORT,     &tmp_item.nameid, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 2, SQLDT_SHORT,     &tmp_item.amount, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 3, SQLDT_UINT,      &tmp_item.equip, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 4, SQLDT_CHAR,      &tmp_item.identify, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 5, SQLDT_CHAR,      &tmp_item.refine, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 6, SQLDT_CHAR,      &tmp_item.attribute, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 7, SQLDT_UINT,      &tmp_item.expire_time, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 8, SQLDT_CHAR,      &tmp_item.favorite, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 9, SQLDT_UCHAR,     &tmp_item.bound,    0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 10, SQLDT_UINT64,   &tmp_item.unique_id,0, NULL, NULL))
 		SqlStmt_ShowDebug(stmt);
 	for(i = 0; i < MAX_SLOTS; ++i)
-		if(SQL_ERROR == SQL->StmtBindColumn(stmt, 11+i, SQLDT_SHORT, &tmp_item.card[i], 0, NULL, NULL))
+		if(SQL_ERROR == SqlStmt_BindColumn(stmt, 11+i, SQLDT_SHORT, &tmp_item.card[i], 0, NULL, NULL))
 			SqlStmt_ShowDebug(stmt);
 
-	for(i = 0; i < MAX_INVENTORY && SQL_SUCCESS == SQL->StmtNextRow(stmt); ++i)
+	for(i = 0; i < MAX_INVENTORY && SQL_SUCCESS == SqlStmt_NextRow(stmt); ++i)
 		memcpy(&p->inventory[i], &tmp_item, sizeof(tmp_item));
 
 	strcat(t_msg, " inventory");
@@ -1256,25 +1256,25 @@ int mmo_char_fromsql(int char_id, struct mmo_charstatus *p, bool load_everything
 	StrBuf->Printf(&buf, " FROM `%s` WHERE `char_id`=? LIMIT %d", cart_db, MAX_CART);
 
 	memset(&tmp_item, 0, sizeof(tmp_item));
-	if(SQL_ERROR == SQL->StmtPrepareStr(stmt, StrBuf->Value(&buf))
-	   ||  SQL_ERROR == SQL->StmtBindParam(stmt, 0, SQLDT_INT, &char_id, 0)
-	   ||  SQL_ERROR == SQL->StmtExecute(stmt)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 0, SQLDT_INT,         &tmp_item.id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 1, SQLDT_SHORT,       &tmp_item.nameid, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 2, SQLDT_SHORT,       &tmp_item.amount, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 3, SQLDT_UINT,        &tmp_item.equip, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 4, SQLDT_CHAR,        &tmp_item.identify, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 5, SQLDT_CHAR,        &tmp_item.refine, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 6, SQLDT_CHAR,        &tmp_item.attribute, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 7, SQLDT_UINT,        &tmp_item.expire_time, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 8, SQLDT_UCHAR,       &tmp_item.bound,       0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 9, SQLDT_UINT64,      &tmp_item.unique_id,   0, NULL, NULL))
+	if(SQL_ERROR == SqlStmt_PrepareStr(stmt, StrBuf->Value(&buf))
+	   ||  SQL_ERROR == SqlStmt_BindParam(stmt, 0, SQLDT_INT, &char_id, 0)
+	   ||  SQL_ERROR == SqlStmt_Execute(stmt)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 0, SQLDT_INT,         &tmp_item.id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 1, SQLDT_SHORT,       &tmp_item.nameid, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 2, SQLDT_SHORT,       &tmp_item.amount, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 3, SQLDT_UINT,        &tmp_item.equip, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 4, SQLDT_CHAR,        &tmp_item.identify, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 5, SQLDT_CHAR,        &tmp_item.refine, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 6, SQLDT_CHAR,        &tmp_item.attribute, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 7, SQLDT_UINT,        &tmp_item.expire_time, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 8, SQLDT_UCHAR,       &tmp_item.bound,       0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 9, SQLDT_UINT64,      &tmp_item.unique_id,   0, NULL, NULL))
 		SqlStmt_ShowDebug(stmt);
 	for(i = 0; i < MAX_SLOTS; ++i)
-		if(SQL_ERROR == SQL->StmtBindColumn(stmt, 10+i, SQLDT_SHORT, &tmp_item.card[i], 0, NULL, NULL))
+		if(SQL_ERROR == SqlStmt_BindColumn(stmt, 10+i, SQLDT_SHORT, &tmp_item.card[i], 0, NULL, NULL))
 			SqlStmt_ShowDebug(stmt);
 
-	for(i = 0; i < MAX_CART && SQL_SUCCESS == SQL->StmtNextRow(stmt); ++i)
+	for(i = 0; i < MAX_CART && SQL_SUCCESS == SqlStmt_NextRow(stmt); ++i)
 		memcpy(&p->cart[i], &tmp_item, sizeof(tmp_item));
 	strcat(t_msg, " cart");
 
@@ -1284,18 +1284,18 @@ int mmo_char_fromsql(int char_id, struct mmo_charstatus *p, bool load_everything
 
 	//read skill
 	//`skill` (`char_id`, `id`, `lv`)
-	if(SQL_ERROR == SQL->StmtPrepare(stmt, "SELECT `id`, `lv`,`flag` FROM `%s` WHERE `char_id`=? LIMIT %d", skill_db, MAX_SKILL)
-	   ||  SQL_ERROR == SQL->StmtBindParam(stmt, 0, SQLDT_INT, &char_id, 0)
-	   ||  SQL_ERROR == SQL->StmtExecute(stmt)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 0, SQLDT_USHORT, &tmp_skill.id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 1, SQLDT_UCHAR, &tmp_skill.lv, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 2, SQLDT_UCHAR, &tmp_skill.flag, 0, NULL, NULL))
+	if(SQL_ERROR == SqlStmt_Prepare(stmt, "SELECT `id`, `lv`,`flag` FROM `%s` WHERE `char_id`=? LIMIT %d", skill_db, MAX_SKILL)
+	   ||  SQL_ERROR == SqlStmt_BindParam(stmt, 0, SQLDT_INT, &char_id, 0)
+	   ||  SQL_ERROR == SqlStmt_Execute(stmt)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 0, SQLDT_USHORT, &tmp_skill.id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 1, SQLDT_UCHAR, &tmp_skill.lv, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 2, SQLDT_UCHAR, &tmp_skill.flag, 0, NULL, NULL))
 		SqlStmt_ShowDebug(stmt);
 
 	if(tmp_skill.flag != SKILL_FLAG_PERM_GRANTED)
 		tmp_skill.flag = SKILL_FLAG_PERMANENT;
 
-	for(i = 0; i < MAX_SKILL && SQL_SUCCESS == SQL->StmtNextRow(stmt); ++i) {
+	for(i = 0; i < MAX_SKILL && SQL_SUCCESS == SqlStmt_NextRow(stmt); ++i) {
 		if(skillid2idx[tmp_skill.id])
 			memcpy(&p->skill[skillid2idx[tmp_skill.id]], &tmp_skill, sizeof(tmp_skill));
 		else
@@ -1305,31 +1305,31 @@ int mmo_char_fromsql(int char_id, struct mmo_charstatus *p, bool load_everything
 
 	//read friends
 	//`friends` (`char_id`, `friend_account`, `friend_id`)
-	if(SQL_ERROR == SQL->StmtPrepare(stmt, "SELECT c.`account_id`, c.`char_id`, c.`name` FROM `%s` c LEFT JOIN `%s` f ON f.`friend_account` = c.`account_id` AND f.`friend_id` = c.`char_id` WHERE f.`char_id`=? LIMIT %d", char_db, friend_db, MAX_FRIENDS)
-	   ||  SQL_ERROR == SQL->StmtBindParam(stmt, 0, SQLDT_INT, &char_id, 0)
-	   ||  SQL_ERROR == SQL->StmtExecute(stmt)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 0, SQLDT_INT,    &tmp_friend.account_id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 1, SQLDT_INT,    &tmp_friend.char_id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 2, SQLDT_STRING, &tmp_friend.name, sizeof(tmp_friend.name), NULL, NULL))
+	if(SQL_ERROR == SqlStmt_Prepare(stmt, "SELECT c.`account_id`, c.`char_id`, c.`name` FROM `%s` c LEFT JOIN `%s` f ON f.`friend_account` = c.`account_id` AND f.`friend_id` = c.`char_id` WHERE f.`char_id`=? LIMIT %d", char_db, friend_db, MAX_FRIENDS)
+	   ||  SQL_ERROR == SqlStmt_BindParam(stmt, 0, SQLDT_INT, &char_id, 0)
+	   ||  SQL_ERROR == SqlStmt_Execute(stmt)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 0, SQLDT_INT,    &tmp_friend.account_id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 1, SQLDT_INT,    &tmp_friend.char_id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 2, SQLDT_STRING, &tmp_friend.name, sizeof(tmp_friend.name), NULL, NULL))
 		SqlStmt_ShowDebug(stmt);
 
-	for(i = 0; i < MAX_FRIENDS && SQL_SUCCESS == SQL->StmtNextRow(stmt); ++i)
+	for(i = 0; i < MAX_FRIENDS && SQL_SUCCESS == SqlStmt_NextRow(stmt); ++i)
 		memcpy(&p->friends[i], &tmp_friend, sizeof(tmp_friend));
 	strcat(t_msg, " friends");
 
 #ifdef HOTKEY_SAVING
 	//read hotkeys
 	//`hotkey` (`char_id`, `hotkey`, `type`, `itemskill_id`, `skill_lvl`
-	if(SQL_ERROR == SQL->StmtPrepare(stmt, "SELECT `hotkey`, `type`, `itemskill_id`, `skill_lvl` FROM `%s` WHERE `char_id`=?", hotkey_db)
-	   ||  SQL_ERROR == SQL->StmtBindParam(stmt, 0, SQLDT_INT, &char_id, 0)
-	   ||  SQL_ERROR == SQL->StmtExecute(stmt)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 0, SQLDT_INT,    &hotkey_num, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 1, SQLDT_UCHAR,  &tmp_hotkey.type, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 2, SQLDT_UINT,   &tmp_hotkey.id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 3, SQLDT_USHORT, &tmp_hotkey.lv, 0, NULL, NULL))
+	if(SQL_ERROR == SqlStmt_Prepare(stmt, "SELECT `hotkey`, `type`, `itemskill_id`, `skill_lvl` FROM `%s` WHERE `char_id`=?", hotkey_db)
+	   ||  SQL_ERROR == SqlStmt_BindParam(stmt, 0, SQLDT_INT, &char_id, 0)
+	   ||  SQL_ERROR == SqlStmt_Execute(stmt)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 0, SQLDT_INT,    &hotkey_num, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 1, SQLDT_UCHAR,  &tmp_hotkey.type, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 2, SQLDT_UINT,   &tmp_hotkey.id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 3, SQLDT_USHORT, &tmp_hotkey.lv, 0, NULL, NULL))
 		SqlStmt_ShowDebug(stmt);
 
-	while(SQL_SUCCESS == SQL->StmtNextRow(stmt)) {
+	while(SQL_SUCCESS == SqlStmt_NextRow(stmt)) {
 		if(hotkey_num >= 0 && hotkey_num < MAX_HOTKEYS)
 			memcpy(&p->hotkeys[hotkey_num], &tmp_hotkey, sizeof(tmp_hotkey));
 		else
@@ -1343,17 +1343,17 @@ int mmo_char_fromsql(int char_id, struct mmo_charstatus *p, bool load_everything
 	strcat(t_msg, " mercenary");
 
 	//`account_data` (`account_id`,`bank_vault`)
-	if(SQL_ERROR == SQL->StmtPrepare(stmt, "SELECT `bank_vault` FROM `%s` WHERE `account_id`=? LIMIT 1", account_data_db)
-	   ||	SQL_ERROR == SQL->StmtBindParam(stmt, 0, SQLDT_INT, &account_id, 0)
-	   ||	SQL_ERROR == SQL->StmtExecute(stmt)
-	   ||	SQL_ERROR == SQL->StmtBindColumn(stmt, 0, SQLDT_INT, &p->bank_vault, 0, NULL, NULL))
+	if(SQL_ERROR == SqlStmt_Prepare(stmt, "SELECT `bank_vault` FROM `%s` WHERE `account_id`=? LIMIT 1", account_data_db)
+	   ||	SQL_ERROR == SqlStmt_BindParam(stmt, 0, SQLDT_INT, &account_id, 0)
+	   ||	SQL_ERROR == SqlStmt_Execute(stmt)
+	   ||	SQL_ERROR == SqlStmt_BindColumn(stmt, 0, SQLDT_INT, &p->bank_vault, 0, NULL, NULL))
 		SqlStmt_ShowDebug(stmt);
 
-	if(SQL_SUCCESS == SQL->StmtNextRow(stmt) )
+	if(SQL_SUCCESS == SqlStmt_NextRow(stmt) )
 		strcat(t_msg, " bank");
 
 	if(save_log) ShowInfo(read_message("Source.char.char_save_log"), char_id, p->name, t_msg);  //ok. all data load successfuly!
-	SQL->StmtFree(stmt);
+	SqlStmt_Free(stmt);
 	StrBuf->Destroy(&buf);
 
 	/* load options into proper vars */
@@ -1402,14 +1402,14 @@ bool char_slotchange(struct char_session_data *sd, int fd, unsigned short from, 
 	if(sd->found_char[to] > 0) {/* moving char to occupied slot */
 		bool result = false;
 		/* update both at once */
-		if( SQL_SUCCESS != SQL->QueryStr(sql_handle, "START TRANSACTION")
-		   ||  SQL_SUCCESS != SQL->Query(sql_handle, "UPDATE `%s` SET `char_num`='%d' WHERE `char_id`='%d' LIMIT 1", char_db, from, sd->found_char[to])
-		   ||  SQL_SUCCESS != SQL->Query(sql_handle, "UPDATE `%s` SET `char_num`='%d' WHERE `char_id`='%d' LIMIT 1", char_db, to, sd->found_char[from]) )
+		if( SQL_SUCCESS != Sql_QueryStr(sql_handle, "START TRANSACTION")
+		   ||  SQL_SUCCESS != Sql_Query(sql_handle, "UPDATE `%s` SET `char_num`='%d' WHERE `char_id`='%d' LIMIT 1", char_db, from, sd->found_char[to])
+		   ||  SQL_SUCCESS != Sql_Query(sql_handle, "UPDATE `%s` SET `char_num`='%d' WHERE `char_id`='%d' LIMIT 1", char_db, to, sd->found_char[from]) )
 			Sql_ShowDebug(sql_handle);
 		else
 			result = true;
 
-		if( SQL_ERROR == SQL->QueryStr(sql_handle, (result == true) ? "COMMIT" : "ROLLBACK") ) {
+		if( SQL_ERROR == Sql_QueryStr(sql_handle, (result == true) ? "COMMIT" : "ROLLBACK") ) {
 			Sql_ShowDebug(sql_handle);
 			result = false;
 		}
@@ -1417,14 +1417,14 @@ bool char_slotchange(struct char_session_data *sd, int fd, unsigned short from, 
 			return false;
 		
 	} else {/* slot is free. */
-		if( SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `char_num`='%d' WHERE `char_id`='%d' LIMIT 1", char_db, to, sd->found_char[from] ) ) {
+		if( SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `char_num`='%d' WHERE `char_id`='%d' LIMIT 1", char_db, to, sd->found_char[from] ) ) {
 			Sql_ShowDebug(sql_handle);
 			return false;
 		}
 	}
 
 	/* update count */
-	if( SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `slotchange`=`slotchange`-1 WHERE `char_id`='%d' LIMIT 1", char_db, from_id ) ) {
+	if( SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `slotchange`=`slotchange`-1 WHERE `char_id`='%d' LIMIT 1", char_db, from_id ) ) {
 		Sql_ShowDebug(sql_handle);
 		return false;
 	}
@@ -1449,15 +1449,15 @@ int rename_char_sql(struct char_session_data *sd, int char_id)
 	if(char_dat.rename == 0)
 		return 1;
 
-	SQL->EscapeStringLen(sql_handle, esc_name, sd->new_name, strnlen(sd->new_name, NAME_LENGTH));
+	Sql_EscapeStringLen(sql_handle, esc_name, sd->new_name, strnlen(sd->new_name, NAME_LENGTH));
 
 	// check if the char exist
-	if(SQL_ERROR == SQL->Query(sql_handle, "SELECT 1 FROM `%s` WHERE `name` LIKE '%s' LIMIT 1", char_db, esc_name)) {
+	if(SQL_ERROR == Sql_Query(sql_handle, "SELECT 1 FROM `%s` WHERE `name` LIKE '%s' LIMIT 1", char_db, esc_name)) {
 		Sql_ShowDebug(sql_handle);
 		return 4;
 	}
 
-	if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `name` = '%s', `rename` = '%d' WHERE `char_id` = '%d'", char_db, esc_name, --char_dat.rename, char_id)) {
+	if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `name` = '%s', `rename` = '%d' WHERE `char_id` = '%d'", char_db, esc_name, --char_dat.rename, char_id)) {
 		Sql_ShowDebug(sql_handle);
 		return 3;
 	}
@@ -1471,7 +1471,7 @@ int rename_char_sql(struct char_session_data *sd, int char_id)
 
 	// log change
 	if(log_char) {
-		if(SQL_ERROR == SQL->Query(sql_handle, "INSERT INTO `%s` (`time`, `char_msg`,`account_id`,`char_num`,`name`,`str`,`agi`,`vit`,`int`,`dex`,`luk`,`hair`,`hair_color`)"
+		if(SQL_ERROR == Sql_Query(sql_handle, "INSERT INTO `%s` (`time`, `char_msg`,`account_id`,`char_num`,`name`,`str`,`agi`,`vit`,`int`,`dex`,`luk`,`hair`,`hair_color`)"
 		                          "VALUES (NOW(), '%s', '%d', '%d', '%s', '0', '0', '0', '0', '0', '0', '0', '0')",
 		                          charlog_db, "change char name", sd->account_id, char_dat.slot, esc_name))
 			Sql_ShowDebug(sql_handle);
@@ -1514,17 +1514,17 @@ int check_char_name(char *name, char *esc_name)
 				return -2;
 	}
 	if(name_ignoring_case) {
-		if(SQL_ERROR == SQL->Query(sql_handle, "SELECT 1 FROM `%s` WHERE BINARY `name` = '%s' LIMIT 1", char_db, esc_name)) {
+		if(SQL_ERROR == Sql_Query(sql_handle, "SELECT 1 FROM `%s` WHERE BINARY `name` = '%s' LIMIT 1", char_db, esc_name)) {
 			Sql_ShowDebug(sql_handle);
 			return -2;
 		}
 	} else {
-		if(SQL_ERROR == SQL->Query(sql_handle, "SELECT 1 FROM `%s` WHERE `name` = '%s' LIMIT 1", char_db, esc_name)) {
+		if(SQL_ERROR == Sql_Query(sql_handle, "SELECT 1 FROM `%s` WHERE `name` = '%s' LIMIT 1", char_db, esc_name)) {
 			Sql_ShowDebug(sql_handle);
 			return -2;
 		}
 	}
-	if(SQL->NumRows(sql_handle) > 0)
+	if(Sql_NumRows(sql_handle) > 0)
 		return -1; // name already exists
 
 	return 0;
@@ -1552,7 +1552,7 @@ int make_new_char_sql(struct char_session_data *sd, char *name_, int str, int ag
 
 	safestrncpy(name, name_, NAME_LENGTH);
 	normalize_name(name,TRIM_CHARS);
-	SQL->EscapeStringLen(sql_handle, esc_name, name, strnlen(name, NAME_LENGTH));
+	Sql_EscapeStringLen(sql_handle, esc_name, name, strnlen(name, NAME_LENGTH));
 
 	flag = check_char_name(name,esc_name);
 	if(flag < 0)
@@ -1579,14 +1579,14 @@ int make_new_char_sql(struct char_session_data *sd, char *name_, int str, int ag
 
 	// validation success, log result
 	if(log_char) {
-		if(SQL_ERROR == SQL->Query(sql_handle, "INSERT INTO `%s` (`time`, `char_msg`,`account_id`,`char_num`,`name`,`str`,`agi`,`vit`,`int`,`dex`,`luk`,`hair`,`hair_color`)"
+		if(SQL_ERROR == Sql_Query(sql_handle, "INSERT INTO `%s` (`time`, `char_msg`,`account_id`,`char_num`,`name`,`str`,`agi`,`vit`,`int`,`dex`,`luk`,`hair`,`hair_color`)"
 		                          "VALUES (NOW(), '%s', '%d', '%d', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d')",
 		                          charlog_db, "make new char", sd->account_id, slot, esc_name, str, agi, vit, int_, dex, luk, hair_style, hair_color))
 			Sql_ShowDebug(sql_handle);
 	}
 #if PACKETVER >= 20120307
 	//Insert the new char entry to the database
-	if(SQL_ERROR == SQL->Query(sql_handle, "INSERT INTO `%s` (`account_id`, `char_num`, `name`, `zeny`, `status_point`,`str`, `agi`, `vit`, `int`, `dex`, `luk`, `max_hp`, `hp`,"
+	if(SQL_ERROR == Sql_Query(sql_handle, "INSERT INTO `%s` (`account_id`, `char_num`, `name`, `zeny`, `status_point`,`str`, `agi`, `vit`, `int`, `dex`, `luk`, `max_hp`, `hp`,"
 	                          "`max_sp`, `sp`, `hair`, `hair_color`, `last_map`, `last_x`, `last_y`, `save_map`, `save_x`, `save_y`, `rename`) VALUES ("
 	                          "'%d', '%d', '%s', '%d',  '%d','%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d','%d', '%d','%d', '%d', '%s', '%d', '%d', '%s', '%d', '%d', '%d')",
 	                          char_db, sd->account_id , slot, esc_name, start_zeny, 48, str, agi, vit, int_, dex, luk,
@@ -1597,7 +1597,7 @@ int make_new_char_sql(struct char_session_data *sd, char *name_, int str, int ag
 	}
 #else
 	//Insert the new char entry to the database
-	if(SQL_ERROR == SQL->Query(sql_handle, "INSERT INTO `%s` (`account_id`, `char_num`, `name`, `zeny`, `str`, `agi`, `vit`, `int`, `dex`, `luk`, `max_hp`, `hp`,"
+	if(SQL_ERROR == Sql_Query(sql_handle, "INSERT INTO `%s` (`account_id`, `char_num`, `name`, `zeny`, `str`, `agi`, `vit`, `int`, `dex`, `luk`, `max_hp`, `hp`,"
 	                          "`max_sp`, `sp`, `hair`, `hair_color`, `last_map`, `last_x`, `last_y`, `save_map`, `save_x`, `save_y`, `rename`) VALUES ("
 	                          "'%d', '%d', '%s', '%d',  '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d','%d', '%d','%d', '%d', '%s', '%d', '%d', '%s', '%d', '%d', '%d')",
 	                          char_db, sd->account_id , slot, esc_name, start_zeny, str, agi, vit, int_, dex, luk,
@@ -1608,7 +1608,7 @@ int make_new_char_sql(struct char_session_data *sd, char *name_, int str, int ag
 	}
 #endif
 	//Retrieve the newly auto-generated char id
-	char_id = (int)SQL->LastInsertId(sql_handle);
+	char_id = (int)Sql_LastInsertId(sql_handle);
 	  //Give the char the default items
 	{ //Adicionado suporte para múltiplos itens [brAthena]
 		int i = 0;
@@ -1618,7 +1618,7 @@ int make_new_char_sql(struct char_session_data *sd, char *name_, int str, int ag
 				j = start_items[i].is_eq ? 1 : qt;
 
 			for(k = 0; k < qt; k += j)
-				if(SQL_ERROR == SQL->Query(sql_handle, "INSERT INTO `%s` (`char_id`,`nameid`, `amount`, `identify`) VALUES ('%d', '%d', '%d', '%d')", inventory_db, char_id, id, j, 1))
+				if(SQL_ERROR == Sql_Query(sql_handle, "INSERT INTO `%s` (`char_id`,`nameid`, `amount`, `identify`) VALUES ('%d', '%d', '%d', '%d')", inventory_db, char_id, id, j, 1))
 					Sql_ShowDebug(sql_handle);
 			i++;
 		}
@@ -1635,9 +1635,9 @@ int divorce_char_sql(int partner_id1, int partner_id2)
 {
 	unsigned char buf[64];
 
-	if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `partner_id`='0' WHERE `char_id`='%d' OR `char_id`='%d' LIMIT 2", char_db, partner_id1, partner_id2))
+	if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `partner_id`='0' WHERE `char_id`='%d' OR `char_id`='%d' LIMIT 2", char_db, partner_id1, partner_id2))
 		Sql_ShowDebug(sql_handle);
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE (`nameid`='%d' OR `nameid`='%d') AND (`char_id`='%d' OR `char_id`='%d') LIMIT 2", inventory_db, WEDDING_RING_M, WEDDING_RING_F, partner_id1, partner_id2))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE (`nameid`='%d' OR `nameid`='%d') AND (`char_id`='%d' OR `char_id`='%d') LIMIT 2", inventory_db, WEDDING_RING_M, WEDDING_RING_F, partner_id1, partner_id2))
 		Sql_ShowDebug(sql_handle);
 
 	WBUFW(buf,0) = 0x2b12;
@@ -1662,28 +1662,28 @@ int delete_char_sql(int char_id)
 	char *data;
 	size_t len;
 
-	if(SQL_ERROR == SQL->Query(sql_handle, "SELECT `name`,`account_id`,`party_id`,`guild_id`,`base_level`,`homun_id`,`partner_id`,`father`,`mother`,`elemental_id` FROM `%s` WHERE `char_id`='%d'", char_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "SELECT `name`,`account_id`,`party_id`,`guild_id`,`base_level`,`homun_id`,`partner_id`,`father`,`mother`,`elemental_id` FROM `%s` WHERE `char_id`='%d'", char_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
-	if(SQL_SUCCESS != SQL->NextRow(sql_handle)) {
+	if(SQL_SUCCESS != Sql_NextRow(sql_handle)) {
 		ShowError(read_message("Source.char.char_delete_char_sql_s1"));
-		SQL->FreeResult(sql_handle);
+		Sql_FreeResult(sql_handle);
 		return -1;
 	}
 
-	SQL->GetData(sql_handle, 0, &data, &len); safestrncpy(name, data, NAME_LENGTH);
-	SQL->GetData(sql_handle, 1, &data, NULL); account_id = atoi(data);
-	SQL->GetData(sql_handle, 2, &data, NULL); party_id = atoi(data);
-	SQL->GetData(sql_handle, 3, &data, NULL); guild_id = atoi(data);
-	SQL->GetData(sql_handle, 4, &data, NULL); base_level = atoi(data);
-	SQL->GetData(sql_handle, 5, &data, NULL); hom_id = atoi(data);
-	SQL->GetData(sql_handle, 6, &data, NULL); partner_id = atoi(data);
-	SQL->GetData(sql_handle, 7, &data, NULL); father_id = atoi(data);
-	SQL->GetData(sql_handle, 8, &data, NULL); mother_id = atoi(data);
-	SQL->GetData(sql_handle, 9, &data, NULL); elemental_id = atoi(data);
+	Sql_GetData(sql_handle, 0, &data, &len); safestrncpy(name, data, NAME_LENGTH);
+	Sql_GetData(sql_handle, 1, &data, NULL); account_id = atoi(data);
+	Sql_GetData(sql_handle, 2, &data, NULL); party_id = atoi(data);
+	Sql_GetData(sql_handle, 3, &data, NULL); guild_id = atoi(data);
+	Sql_GetData(sql_handle, 4, &data, NULL); base_level = atoi(data);
+	Sql_GetData(sql_handle, 5, &data, NULL); hom_id = atoi(data);
+	Sql_GetData(sql_handle, 6, &data, NULL); partner_id = atoi(data);
+	Sql_GetData(sql_handle, 7, &data, NULL); father_id = atoi(data);
+	Sql_GetData(sql_handle, 8, &data, NULL); mother_id = atoi(data);
+	Sql_GetData(sql_handle, 9, &data, NULL); elemental_id = atoi(data);
 
-	SQL->EscapeStringLen(sql_handle, esc_name, name, min(len, NAME_LENGTH));
-	SQL->FreeResult(sql_handle);
+	Sql_EscapeStringLen(sql_handle, esc_name, name, min(len, NAME_LENGTH));
+	Sql_FreeResult(sql_handle);
 
 	//check for config char del condition [Lupus]
 	// TODO: Move this out to packet processing (0x68/0x1fb).
@@ -1703,9 +1703,9 @@ int delete_char_sql(int char_id)
 		// Char is Baby
 		unsigned char buf[64];
 
-		if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `child`='0' WHERE `char_id`='%d' OR `char_id`='%d'", char_db, father_id, mother_id))
+		if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `child`='0' WHERE `char_id`='%d' OR `char_id`='%d'", char_db, father_id, mother_id))
 			Sql_ShowDebug(sql_handle);
-		if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `id` = '410'AND (`char_id`='%d' OR `char_id`='%d')", skill_db, father_id, mother_id))
+		if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `id` = '410'AND (`char_id`='%d' OR `char_id`='%d')", skill_db, father_id, mother_id))
 			Sql_ShowDebug(sql_handle);
 
 		WBUFW(buf,0) = 0x2b25;
@@ -1721,13 +1721,13 @@ int delete_char_sql(int char_id)
 
 	/* delete char's pet */
 	//Delete the hatched pet if you have one...
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d' AND `incuvate` = '0'", pet_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d' AND `incuvate` = '0'", pet_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
 	//Delete all pets that are stored in eggs (inventory + cart)
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` USING `%s` JOIN `%s` ON `pet_id` = `card1`|`card2`<<16 WHERE `%s`.char_id = '%d' AND card0 = -256", pet_db, pet_db, inventory_db, inventory_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` USING `%s` JOIN `%s` ON `pet_id` = `card1`|`card2`<<16 WHERE `%s`.char_id = '%d' AND card0 = -256", pet_db, pet_db, inventory_db, inventory_db, char_id))
 		Sql_ShowDebug(sql_handle);
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` USING `%s` JOIN `%s` ON `pet_id` = `card1`|`card2`<<16 WHERE `%s`.char_id = '%d' AND card0 = -256", pet_db, pet_db, cart_db, cart_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` USING `%s` JOIN `%s` ON `pet_id` = `card1`|`card2`<<16 WHERE `%s`.char_id = '%d' AND card0 = -256", pet_db, pet_db, cart_db, cart_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
 	/* remove homunculus */
@@ -1742,71 +1742,71 @@ int delete_char_sql(int char_id)
 	mercenary_owner_delete(char_id);
 
 	/* delete char's friends list */
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id` = '%d'", friend_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id` = '%d'", friend_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
 	/* delete char from other's friend list */
 	//NOTE: Won't this cause problems for people who are already online? [Skotlex]
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `friend_id` = '%d'", friend_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `friend_id` = '%d'", friend_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
 #ifdef HOTKEY_SAVING
 	/* delete hotkeys */
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", hotkey_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", hotkey_db, char_id))
 		Sql_ShowDebug(sql_handle);
 #endif
 
 	/* delete inventory */
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", inventory_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", inventory_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
 	/* delete cart inventory */
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", cart_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", cart_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
 	/* delete memo areas */
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", memo_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", memo_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
 	/* delete character registry */
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", char_reg_str_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", char_reg_str_db, char_id))
 		Sql_ShowDebug(sql_handle);
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", char_reg_num_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", char_reg_num_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
 	/* delete skills */
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", skill_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", skill_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
 	/* delete mails (only received) */
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `dest_id`='%d'", mail_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `dest_id`='%d'", mail_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
 #ifdef ENABLE_SC_SAVING
 	/* status changes */
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `account_id` = '%d' AND `char_id`='%d'", scdata_db, account_id, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `account_id` = '%d' AND `char_id`='%d'", scdata_db, account_id, char_id))
 		Sql_ShowDebug(sql_handle);
 #endif
 
 	if(log_char) {
-		if(SQL_ERROR == SQL->Query(sql_handle, "INSERT INTO `%s`(`time`, `account_id`,`char_num`,`char_msg`,`name`) VALUES (NOW(), '%d', '%d', 'Deleted char (CID %d)', '%s')",
+		if(SQL_ERROR == Sql_Query(sql_handle, "INSERT INTO `%s`(`time`, `account_id`,`char_num`,`char_msg`,`name`) VALUES (NOW(), '%d', '%d', 'Deleted char (CID %d)', '%s')",
 		                          charlog_db, account_id, 0, char_id, esc_name))
 			Sql_ShowDebug(sql_handle);
 	}
 
 	/* delete character */
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", char_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", char_db, char_id))
 		Sql_ShowDebug(sql_handle);
 
 	/* No need as we used inter_guild_leave [Skotlex]
 	// Also delete info from guildtables.
-	if( SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", guild_member_db, char_id) )
+	if( SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d'", guild_member_db, char_id) )
 	    Sql_ShowDebug(sql_handle);
 	*/
 
-	if(SQL_ERROR == SQL->Query(sql_handle, "SELECT `guild_id` FROM `%s` WHERE `char_id` = '%d'", guild_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "SELECT `guild_id` FROM `%s` WHERE `char_id` = '%d'", guild_db, char_id))
 		Sql_ShowDebug(sql_handle);
-	else if(SQL->NumRows(sql_handle) > 0)
+	else if(Sql_NumRows(sql_handle) > 0)
 		mapif_parse_BreakGuild(0,guild_id);
 	else if(guild_id)
 		inter_guild_leave(guild_id, account_id, char_id);// Leave your guild.
@@ -1950,7 +1950,7 @@ void mmo_char_send020d(int fd, struct char_session_data *sd) {
 					WFIFOL(fd, 4 + (24*c)) = 0;
 					/* also update on mysql */
 					sd->unban_time[i] = 0;
-					if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `unban_time`='0' WHERE `char_id`='%d' LIMIT 1", char_db, sd->found_char[i]))
+					if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `unban_time`='0' WHERE `char_id`='%d' LIMIT 1", char_db, sd->found_char[i]))
 						Sql_ShowDebug(sql_handle);
 				}
 				c++;
@@ -2012,60 +2012,60 @@ int mmo_char_send006b(int fd, struct char_session_data *sd)
 
 int char_married(int pl1, int pl2)
 {
-	if(SQL_ERROR == SQL->Query(sql_handle, "SELECT `partner_id` FROM `%s` WHERE `char_id` = '%d'", char_db, pl1))
+	if(SQL_ERROR == Sql_Query(sql_handle, "SELECT `partner_id` FROM `%s` WHERE `char_id` = '%d'", char_db, pl1))
 		Sql_ShowDebug(sql_handle);
-	else if(SQL_SUCCESS == SQL->NextRow(sql_handle)) {
+	else if(SQL_SUCCESS == Sql_NextRow(sql_handle)) {
 		char *data;
 
-		SQL->GetData(sql_handle, 0, &data, NULL);
+		Sql_GetData(sql_handle, 0, &data, NULL);
 		if(pl2 == atoi(data)) {
-			SQL->FreeResult(sql_handle);
+			Sql_FreeResult(sql_handle);
 			return 1;
 		}
 	}
-	SQL->FreeResult(sql_handle);
+	Sql_FreeResult(sql_handle);
 	return 0;
 }
 
 int char_child(int parent_id, int child_id)
 {
-	if(SQL_ERROR == SQL->Query(sql_handle, "SELECT `child` FROM `%s` WHERE `char_id` = '%d'", char_db, parent_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "SELECT `child` FROM `%s` WHERE `char_id` = '%d'", char_db, parent_id))
 		Sql_ShowDebug(sql_handle);
-	else if(SQL_SUCCESS == SQL->NextRow(sql_handle)) {
+	else if(SQL_SUCCESS == Sql_NextRow(sql_handle)) {
 		char *data;
 
-		SQL->GetData(sql_handle, 0, &data, NULL);
+		Sql_GetData(sql_handle, 0, &data, NULL);
 		if(child_id == atoi(data)) {
-			SQL->FreeResult(sql_handle);
+			Sql_FreeResult(sql_handle);
 			return 1;
 		}
 	}
-	SQL->FreeResult(sql_handle);
+	Sql_FreeResult(sql_handle);
 	return 0;
 }
 
 int char_family(int cid1, int cid2, int cid3)
 {
-	if(SQL_ERROR == SQL->Query(sql_handle, "SELECT `char_id`,`partner_id`,`child` FROM `%s` WHERE `char_id` IN ('%d','%d','%d')", char_db, cid1, cid2, cid3))
+	if(SQL_ERROR == Sql_Query(sql_handle, "SELECT `char_id`,`partner_id`,`child` FROM `%s` WHERE `char_id` IN ('%d','%d','%d')", char_db, cid1, cid2, cid3))
 		Sql_ShowDebug(sql_handle);
-	else while(SQL_SUCCESS == SQL->NextRow(sql_handle)) {
+	else while(SQL_SUCCESS == Sql_NextRow(sql_handle)) {
 			int charid;
 			int partnerid;
 			int childid;
 			char *data;
 
-			SQL->GetData(sql_handle, 0, &data, NULL); charid = atoi(data);
-			SQL->GetData(sql_handle, 1, &data, NULL); partnerid = atoi(data);
-			SQL->GetData(sql_handle, 2, &data, NULL); childid = atoi(data);
+			Sql_GetData(sql_handle, 0, &data, NULL); charid = atoi(data);
+			Sql_GetData(sql_handle, 1, &data, NULL); partnerid = atoi(data);
+			Sql_GetData(sql_handle, 2, &data, NULL); childid = atoi(data);
 
 			if((cid1 == charid    && ((cid2 == partnerid && cid3 == childid) || (cid2 == childid   && cid3 == partnerid))) ||
 			   (cid1 == partnerid && ((cid2 == charid    && cid3 == childid) || (cid2 == childid   && cid3 == charid))) ||
 			   (cid1 == childid   && ((cid2 == charid    && cid3 == partnerid) || (cid2 == partnerid && cid3 == charid)))) {
-				SQL->FreeResult(sql_handle);
+				Sql_FreeResult(sql_handle);
 				return childid;
 			}
 		}
-	SQL->FreeResult(sql_handle);
+	Sql_FreeResult(sql_handle);
 	return 0;
 }
 
@@ -2372,12 +2372,12 @@ int parse_fromlogin(int fd)
 							node->sex = sex;
 
 						// get characters
-						if(SQL_ERROR == SQL->Query(sql_handle, "SELECT `char_id`,`class`,`guild_id` FROM `%s` WHERE `account_id` = '%d'", char_db, acc))
+						if(SQL_ERROR == Sql_Query(sql_handle, "SELECT `char_id`,`class`,`guild_id` FROM `%s` WHERE `account_id` = '%d'", char_db, acc))
 							Sql_ShowDebug(sql_handle);
-						for(i = 0; i < MAX_CHARS && SQL_SUCCESS == SQL->NextRow(sql_handle); ++i) {
-							SQL->GetData(sql_handle, 0, &data, NULL); char_id[i] = atoi(data);
-							SQL->GetData(sql_handle, 1, &data, NULL); class_[i] = atoi(data);
-							SQL->GetData(sql_handle, 2, &data, NULL); guild_id[i] = atoi(data);
+						for(i = 0; i < MAX_CHARS && SQL_SUCCESS == Sql_NextRow(sql_handle); ++i) {
+							Sql_GetData(sql_handle, 0, &data, NULL); char_id[i] = atoi(data);
+							Sql_GetData(sql_handle, 1, &data, NULL); class_[i] = atoi(data);
+							Sql_GetData(sql_handle, 2, &data, NULL); guild_id[i] = atoi(data);
 						}
 						num = i;
 						for(i = 0; i < num; ++i) {
@@ -2405,14 +2405,14 @@ int parse_fromlogin(int fd)
 									class_[i] = (sex ? JOB_KAGEROU : JOB_OBORO);
 							}
 
-							if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `class`='%d', `weapon`='0', `shield`='0', `head_top`='0', `head_mid`='0', `head_bottom`='0' WHERE `char_id`='%d'", char_db, class_[i], char_id[i]) 
-							|| SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `equip`='0' WHERE `char_id`='%d' AND `equip` != '0'", inventory_db, char_id[i]))
+							if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `class`='%d', `weapon`='0', `shield`='0', `head_top`='0', `head_mid`='0', `head_bottom`='0' WHERE `char_id`='%d'", char_db, class_[i], char_id[i]) 
+							|| SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `equip`='0' WHERE `char_id`='%d' AND `equip` != '0'", inventory_db, char_id[i]))
 								Sql_ShowDebug(sql_handle);
 
 							if(guild_id[i])  // If there is a guild, update the guild_member data [Skotlex]
 								inter_guild_sex_changed(guild_id[i], acc, char_id[i], sex);
 						}
-						SQL->FreeResult(sql_handle);
+						Sql_FreeResult(sql_handle);
 
 						// disconnect player if online on char-server
 						disconnect_player(acc);
@@ -2641,48 +2641,48 @@ void char_read_fame_list(void) {
 	memset(chemist_fame_list, 0, sizeof(chemist_fame_list));
 	memset(taekwon_fame_list, 0, sizeof(taekwon_fame_list));
 	// Build Blacksmith ranking list
-	if(SQL_ERROR == SQL->Query(sql_handle, "SELECT `char_id`,`fame`,`name` FROM `%s` WHERE `fame`>0 AND (`class`='%d' OR `class`='%d' OR `class`='%d' OR `class`='%d' OR `class`='%d' OR `class`='%d') ORDER BY `fame` DESC LIMIT 0,%d", char_db, JOB_BLACKSMITH, JOB_WHITESMITH, JOB_BABY_BLACKSMITH, JOB_MECHANIC, JOB_MECHANIC_T, JOB_BABY_MECHANIC, fame_list_size_smith))
+	if(SQL_ERROR == Sql_Query(sql_handle, "SELECT `char_id`,`fame`,`name` FROM `%s` WHERE `fame`>0 AND (`class`='%d' OR `class`='%d' OR `class`='%d' OR `class`='%d' OR `class`='%d' OR `class`='%d') ORDER BY `fame` DESC LIMIT 0,%d", char_db, JOB_BLACKSMITH, JOB_WHITESMITH, JOB_BABY_BLACKSMITH, JOB_MECHANIC, JOB_MECHANIC_T, JOB_BABY_MECHANIC, fame_list_size_smith))
 		Sql_ShowDebug(sql_handle);
-	for(i = 0; i < fame_list_size_smith && SQL_SUCCESS == SQL->NextRow(sql_handle); ++i) {
+	for(i = 0; i < fame_list_size_smith && SQL_SUCCESS == Sql_NextRow(sql_handle); ++i) {
 		// char_id
-		SQL->GetData(sql_handle, 0, &data, NULL);
+		Sql_GetData(sql_handle, 0, &data, NULL);
 		smith_fame_list[i].id = atoi(data);
 		// fame
-		SQL->GetData(sql_handle, 1, &data, &len);
+		Sql_GetData(sql_handle, 1, &data, &len);
 		smith_fame_list[i].fame = atoi(data);
 		// name
-		SQL->GetData(sql_handle, 2, &data, &len);
+		Sql_GetData(sql_handle, 2, &data, &len);
 		memcpy(smith_fame_list[i].name, data, min(len, NAME_LENGTH));
 	}
 	// Build Alchemist ranking list
-	if(SQL_ERROR == SQL->Query(sql_handle, "SELECT `char_id`,`fame`,`name` FROM `%s` WHERE `fame`>0 AND (`class`='%d' OR `class`='%d' OR `class`='%d' OR `class`='%d' OR `class`='%d' OR `class`='%d') ORDER BY `fame` DESC LIMIT 0,%d", char_db, JOB_ALCHEMIST, JOB_CREATOR, JOB_BABY_ALCHEMIST, JOB_GENETIC, JOB_GENETIC_T, JOB_BABY_GENETIC, fame_list_size_chemist))
+	if(SQL_ERROR == Sql_Query(sql_handle, "SELECT `char_id`,`fame`,`name` FROM `%s` WHERE `fame`>0 AND (`class`='%d' OR `class`='%d' OR `class`='%d' OR `class`='%d' OR `class`='%d' OR `class`='%d') ORDER BY `fame` DESC LIMIT 0,%d", char_db, JOB_ALCHEMIST, JOB_CREATOR, JOB_BABY_ALCHEMIST, JOB_GENETIC, JOB_GENETIC_T, JOB_BABY_GENETIC, fame_list_size_chemist))
 		Sql_ShowDebug(sql_handle);
-	for(i = 0; i < fame_list_size_chemist && SQL_SUCCESS == SQL->NextRow(sql_handle); ++i) {
+	for(i = 0; i < fame_list_size_chemist && SQL_SUCCESS == Sql_NextRow(sql_handle); ++i) {
 		// char_id
-		SQL->GetData(sql_handle, 0, &data, NULL);
+		Sql_GetData(sql_handle, 0, &data, NULL);
 		chemist_fame_list[i].id = atoi(data);
 		// fame
-		SQL->GetData(sql_handle, 1, &data, &len);
+		Sql_GetData(sql_handle, 1, &data, &len);
 		chemist_fame_list[i].fame = atoi(data);
 		// name
-		SQL->GetData(sql_handle, 2, &data, &len);
+		Sql_GetData(sql_handle, 2, &data, &len);
 		memcpy(chemist_fame_list[i].name, data, min(len, NAME_LENGTH));
 	}
 	// Build Taekwon ranking list
-	if(SQL_ERROR == SQL->Query(sql_handle, "SELECT `char_id`,`fame`,`name` FROM `%s` WHERE `fame`>0 AND (`class`='%d') ORDER BY `fame` DESC LIMIT 0,%d", char_db, JOB_TAEKWON, fame_list_size_taekwon))
+	if(SQL_ERROR == Sql_Query(sql_handle, "SELECT `char_id`,`fame`,`name` FROM `%s` WHERE `fame`>0 AND (`class`='%d') ORDER BY `fame` DESC LIMIT 0,%d", char_db, JOB_TAEKWON, fame_list_size_taekwon))
 		Sql_ShowDebug(sql_handle);
-	for(i = 0; i < fame_list_size_taekwon && SQL_SUCCESS == SQL->NextRow(sql_handle); ++i) {
+	for(i = 0; i < fame_list_size_taekwon && SQL_SUCCESS == Sql_NextRow(sql_handle); ++i) {
 		// char_id
-		SQL->GetData(sql_handle, 0, &data, NULL);
+		Sql_GetData(sql_handle, 0, &data, NULL);
 		taekwon_fame_list[i].id = atoi(data);
 		// fame
-		SQL->GetData(sql_handle, 1, &data, &len);
+		Sql_GetData(sql_handle, 1, &data, &len);
 		taekwon_fame_list[i].fame = atoi(data);
 		// name
-		SQL->GetData(sql_handle, 2, &data, &len);
+		Sql_GetData(sql_handle, 2, &data, &len);
 		memcpy(taekwon_fame_list[i].name, data, min(len, NAME_LENGTH));
 	}
-	SQL->FreeResult(sql_handle);
+	Sql_FreeResult(sql_handle);
 }
 
 // Send map-servers the fame ranking lists
@@ -2739,10 +2739,10 @@ int char_loadName(int char_id, char *name)
 	char *data;
 	size_t len;
 
-	if(SQL_ERROR == SQL->Query(sql_handle, "SELECT `name` FROM `%s` WHERE `char_id`='%d'", char_db, char_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "SELECT `name` FROM `%s` WHERE `char_id`='%d'", char_db, char_id))
 		Sql_ShowDebug(sql_handle);
-	else if(SQL_SUCCESS == SQL->NextRow(sql_handle)) {
-		SQL->GetData(sql_handle, 0, &data, &len);
+	else if(SQL_SUCCESS == Sql_NextRow(sql_handle)) {
+		Sql_GetData(sql_handle, 0, &data, &len);
 		safestrncpy(name, data, NAME_LENGTH);
 		return 1;
 	} else {
@@ -2790,7 +2790,7 @@ void mapif_server_reset(int id)
 		WBUFW(buf,2) = j * 4 + 10;
 		mapif_sendallwos(fd, buf, WBUFW(buf,2));
 	}
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `index`='%d'", ragsrvinfo_db, server[id].fd))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `index`='%d'", ragsrvinfo_db, server[id].fd))
 		Sql_ShowDebug(sql_handle);
 	online_char_db->foreach(online_char_db,char_db_setoffline,id); //Tag relevant chars as 'in disconnected' server.
 	mapif_server_destroy(id);
@@ -2922,13 +2922,13 @@ int parse_frommap(int fd)
 					int aid, cid;
 					aid = RFIFOL(fd,2);
 					cid = RFIFOL(fd,6);
-					if(SQL_ERROR == SQL->Query(sql_handle, "SELECT `type`, `tick`, `val1`, `val2`, `val3`, `val4` "
+					if(SQL_ERROR == Sql_Query(sql_handle, "SELECT `type`, `tick`, `val1`, `val2`, `val3`, `val4` "
 						"FROM `%s` WHERE `account_id` = '%d' AND `char_id`='%d'",
 						scdata_db, aid, cid) ) {
 						Sql_ShowDebug(sql_handle);
 						break;
 					}
-					if(SQL->NumRows(sql_handle) > 0) {
+					if(Sql_NumRows(sql_handle) > 0) {
 						struct status_change_data scdata;
 						int count;
 						char *data;
@@ -2937,13 +2937,13 @@ int parse_frommap(int fd)
 						WFIFOW(fd,0) = 0x2b1d;
 						WFIFOL(fd,4) = aid;
 						WFIFOL(fd,8) = cid;
-						for(count = 0; count < 50 && SQL_SUCCESS == SQL->NextRow(sql_handle); ++count) {
-							SQL->GetData(sql_handle, 0, &data, NULL); scdata.type = atoi(data);
-							SQL->GetData(sql_handle, 1, &data, NULL); scdata.tick = atoi(data);
-							SQL->GetData(sql_handle, 2, &data, NULL); scdata.val1 = atoi(data);
-							SQL->GetData(sql_handle, 3, &data, NULL); scdata.val2 = atoi(data);
-							SQL->GetData(sql_handle, 4, &data, NULL); scdata.val3 = atoi(data);
-							SQL->GetData(sql_handle, 5, &data, NULL); scdata.val4 = atoi(data);
+						for(count = 0; count < 50 && SQL_SUCCESS == Sql_NextRow(sql_handle); ++count) {
+							Sql_GetData(sql_handle, 0, &data, NULL); scdata.type = atoi(data);
+							Sql_GetData(sql_handle, 1, &data, NULL); scdata.tick = atoi(data);
+							Sql_GetData(sql_handle, 2, &data, NULL); scdata.val1 = atoi(data);
+							Sql_GetData(sql_handle, 3, &data, NULL); scdata.val2 = atoi(data);
+							Sql_GetData(sql_handle, 4, &data, NULL); scdata.val3 = atoi(data);
+							Sql_GetData(sql_handle, 5, &data, NULL); scdata.val4 = atoi(data);
 							memcpy(WFIFOP(fd, 14+count*sizeof(struct status_change_data)), &scdata, sizeof(struct status_change_data));
 						}
 						if(count >= 50)
@@ -2954,7 +2954,7 @@ int parse_frommap(int fd)
 							WFIFOSET(fd,WFIFOW(fd,2));
 
 							//Clear the data once loaded.
-							if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `account_id` = '%d' AND `char_id`='%d'", scdata_db, aid, cid))
+							if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `account_id` = '%d' AND `char_id`='%d'", scdata_db, aid, cid))
 								Sql_ShowDebug(sql_handle);
 						}
 					} else { //no sc (needs a response)
@@ -2966,7 +2966,7 @@ int parse_frommap(int fd)
 					WFIFOW(fd,12) = 0;
 					WFIFOSET(fd,WFIFOW(fd,2));
 					}
-					SQL->FreeResult(sql_handle);
+					Sql_FreeResult(sql_handle);
 #endif
 					RFIFOSKIP(fd, 10);
 				}
@@ -3160,7 +3160,7 @@ int parse_frommap(int fd)
 					int char_id, friend_id;
 					char_id = RFIFOL(fd,2);
 					friend_id = RFIFOL(fd,6);
-					if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d' AND `friend_id`='%d' LIMIT 1",
+					if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `char_id`='%d' AND `friend_id`='%d' LIMIT 1",
 					                          friend_db, char_id, friend_id)) {
 						Sql_ShowDebug(sql_handle);
 						break;
@@ -3212,12 +3212,12 @@ int parse_frommap(int fd)
 					short second = RFIFOW(fd,42);
 					RFIFOSKIP(fd,44);
 
-					SQL->EscapeStringLen(sql_handle, esc_name, name, strnlen(name, NAME_LENGTH));
-					if(SQL_ERROR == SQL->Query(sql_handle, "SELECT `account_id`,`char_id`,`unban_time` FROM `%s` WHERE `name` = '%s'", char_db, esc_name))
+					Sql_EscapeStringLen(sql_handle, esc_name, name, strnlen(name, NAME_LENGTH));
+					if(SQL_ERROR == Sql_Query(sql_handle, "SELECT `account_id`,`char_id`,`unban_time` FROM `%s` WHERE `name` = '%s'", char_db, esc_name))
 						Sql_ShowDebug(sql_handle);
-					else if(SQL->NumRows(sql_handle) == 0) {
+					else if(Sql_NumRows(sql_handle) == 0) {
 						result = 1; // 1-player not found
-					} else if(SQL_SUCCESS != SQL->NextRow(sql_handle)) {
+					} else if(SQL_SUCCESS != Sql_NextRow(sql_handle)) {
 						Sql_ShowDebug(sql_handle);
 						result = 1; // 1-player not found
 					} else {
@@ -3225,9 +3225,9 @@ int parse_frommap(int fd)
 						char *data;
 						time_t unban_time;
 
-						SQL->GetData(sql_handle, 0, &data, NULL); account_id = atoi(data);
-						SQL->GetData(sql_handle, 1, &data, NULL); char_id = atoi(data);
-						SQL->GetData(sql_handle, 2, &data, NULL); unban_time = atol(data);
+						Sql_GetData(sql_handle, 0, &data, NULL); account_id = atoi(data);
+						Sql_GetData(sql_handle, 1, &data, NULL); char_id = atoi(data);
+						Sql_GetData(sql_handle, 2, &data, NULL); unban_time = atol(data);
 
 						if(login_fd <= 0)
 							result = 3; // 3-login-server offline
@@ -3280,7 +3280,7 @@ int parse_frommap(int fd)
 								{
 									time_t timestamp;
 									struct tm *tmtime;
-									SqlStmt* stmt = SQL->StmtMalloc(sql_handle);
+									SqlStmt* stmt = SqlStmt_Malloc(sql_handle);
 
 									if (unban_time == 0 || unban_time < time(NULL))
 										timestamp = time(NULL); // new ban
@@ -3296,16 +3296,16 @@ int parse_frommap(int fd)
 									tmtime->tm_sec  = tmtime->tm_sec + second;
 									timestamp = mktime(tmtime);
 
-									if(SQL_SUCCESS != SQL->StmtPrepare(stmt, "UPDATE `%s` SET `unban_time` = ? WHERE `char_id` = ? LIMIT 1",char_db)
-								   	|| SQL_SUCCESS != SQL->StmtBindParam(stmt,  0, SQLDT_LONG,   (void*)&timestamp,   sizeof(timestamp))
-								   	|| SQL_SUCCESS != SQL->StmtBindParam(stmt,  1, SQLDT_INT,    (void*)&char_id,     sizeof(char_id))
-								   	|| SQL_SUCCESS != SQL->StmtExecute(stmt)
+									if(SQL_SUCCESS != SqlStmt_Prepare(stmt, "UPDATE `%s` SET `unban_time` = ? WHERE `char_id` = ? LIMIT 1",char_db)
+								   	|| SQL_SUCCESS != SqlStmt_BindParam(stmt,  0, SQLDT_LONG,   (void*)&timestamp,   sizeof(timestamp))
+								   	|| SQL_SUCCESS != SqlStmt_BindParam(stmt,  1, SQLDT_INT,    (void*)&char_id,     sizeof(char_id))
+								   	|| SQL_SUCCESS != SqlStmt_Execute(stmt)
 
 								   	) {
 										SqlStmt_ShowDebug(stmt);
 									}
 
-									SQL->StmtFree(stmt);
+									SqlStmt_Free(stmt);
 
 									// condition applies; send to all map-servers to disconnect the player
 									if(timestamp > time(NULL)) {
@@ -3324,7 +3324,7 @@ int parse_frommap(int fd)
 								break;
 								case 7: //char unban
 								/* handled by char server, so no redirection */
-								if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `unban_time` = '0' WHERE `char_id` = '%d' LIMIT 1", char_db, char_id)) {
+								if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `unban_time` = '0' WHERE `char_id` = '%d' LIMIT 1", char_db, char_id)) {
 								Sql_ShowDebug(sql_handle);
 								result = 1;
 							}
@@ -3334,7 +3334,7 @@ int parse_frommap(int fd)
 					}
 				}
 
-					SQL->FreeResult(sql_handle);
+					Sql_FreeResult(sql_handle);
 
 					// send answer if a player ask, not if the server ask
 					if(acc != -1 && type != 5) {  // Don't send answer for changesex
@@ -3414,9 +3414,9 @@ int parse_frommap(int fd)
 				{
 					char esc_server_name[sizeof(server_name)*2+1];
 
-					SQL->EscapeString(sql_handle, esc_server_name, server_name);
+					Sql_EscapeString(sql_handle, esc_server_name, server_name);
 
-					if(SQL_ERROR == SQL->Query(sql_handle, "INSERT INTO `%s` SET `index`='%d',`name`='%s',`exp`='%d',`jexp`='%d',`drop`='%d'",
+					if(SQL_ERROR == Sql_Query(sql_handle, "INSERT INTO `%s` SET `index`='%d',`name`='%s',`exp`='%d',`jexp`='%d',`drop`='%d'",
 					                          ragsrvinfo_db, fd, esc_server_name, RFIFOL(fd,2), RFIFOL(fd,6), RFIFOL(fd,10)))
 						Sql_ShowDebug(sql_handle);
 					RFIFOSKIP(fd,14);
@@ -3474,7 +3474,7 @@ int parse_frommap(int fd)
 							StrBuf->Printf(&buf, "('%d','%d','%hu','%d','%d','%d','%d','%d')", aid, cid,
 							                 data.type, data.tick, data.val1, data.val2, data.val3, data.val4);
 						}
-						if(SQL_ERROR == SQL->QueryStr(sql_handle, StrBuf->Value(&buf)))
+						if(SQL_ERROR == Sql_QueryStr(sql_handle, StrBuf->Value(&buf)))
 							Sql_ShowDebug(sql_handle);
 						StrBuf->Destroy(&buf);
 					}
@@ -3768,13 +3768,13 @@ static void char_delete2_req(int fd, struct char_session_data *sd)
 		return;
 	}
 
-	if(SQL_SUCCESS != SQL->Query(sql_handle, "SELECT `delete_date` FROM `%s` WHERE `char_id`='%d'", char_db, char_id) || SQL_SUCCESS != SQL->NextRow(sql_handle)) {
+	if(SQL_SUCCESS != Sql_Query(sql_handle, "SELECT `delete_date` FROM `%s` WHERE `char_id`='%d'", char_db, char_id) || SQL_SUCCESS != Sql_NextRow(sql_handle)) {
 		Sql_ShowDebug(sql_handle);
 		char_delete2_ack(fd, char_id, 3, 0);
 		return;
 	}
 
-	SQL->GetData(sql_handle, 0, &data, NULL); delete_date = strtoul(data, NULL, 10);
+	Sql_GetData(sql_handle, 0, &data, NULL); delete_date = strtoul(data, NULL, 10);
 
 	if(delete_date) {  // character already queued for deletion
 		char_delete2_ack(fd, char_id, 0, 0);
@@ -3801,7 +3801,7 @@ static void char_delete2_req(int fd, struct char_session_data *sd)
 	// success
 	delete_date = time(NULL)+char_del_delay;
 
-	if(SQL_SUCCESS != SQL->Query(sql_handle, "UPDATE `%s` SET `delete_date`='%lu' WHERE `char_id`='%d'", char_db, (unsigned long)delete_date, char_id)) {
+	if(SQL_SUCCESS != Sql_Query(sql_handle, "UPDATE `%s` SET `delete_date`='%lu' WHERE `char_id`='%d'", char_db, (unsigned long)delete_date, char_id)) {
 		Sql_ShowDebug(sql_handle);
 		char_delete2_ack(fd, char_id, 3, 0);
 		return;
@@ -3842,15 +3842,15 @@ static void char_delete2_accept(int fd, struct char_session_data *sd)
 		return;
 	}
 
-	if(SQL_SUCCESS != SQL->Query(sql_handle, "SELECT `base_level`,`delete_date` FROM `%s` WHERE `char_id`='%d'", char_db, char_id) || SQL_SUCCESS != SQL->NextRow(sql_handle)) {
+	if(SQL_SUCCESS != Sql_Query(sql_handle, "SELECT `base_level`,`delete_date` FROM `%s` WHERE `char_id`='%d'", char_db, char_id) || SQL_SUCCESS != Sql_NextRow(sql_handle)) {
 		// data error
 		Sql_ShowDebug(sql_handle);
 		char_delete2_accept_ack(fd, char_id, 3);
 		return;
 	}
 
-	SQL->GetData(sql_handle, 0, &data, NULL); base_level = (unsigned int)strtoul(data, NULL, 10);
-	SQL->GetData(sql_handle, 1, &data, NULL); delete_date = strtoul(data, NULL, 10);
+	Sql_GetData(sql_handle, 0, &data, NULL); base_level = (unsigned int)strtoul(data, NULL, 10);
+	Sql_GetData(sql_handle, 1, &data, NULL); delete_date = strtoul(data, NULL, 10);
 
 	if(!delete_date || delete_date>time(NULL)) {
 		// not queued or delay not yet passed
@@ -3900,7 +3900,7 @@ static void char_delete2_cancel(int fd, struct char_session_data *sd)
 	// there is no need to check, whether or not the character was
 	// queued for deletion, as the client prints an error message by
 	// itself, if it was not the case (@see char_delete2_cancel_ack)
-	if(SQL_SUCCESS != SQL->Query(sql_handle, "UPDATE `%s` SET `delete_date`='0' WHERE `char_id`='%d'", char_db, char_id)) {
+	if(SQL_SUCCESS != Sql_Query(sql_handle, "UPDATE `%s` SET `delete_date`='0' WHERE `char_id`='%d'", char_db, char_id)) {
 		Sql_ShowDebug(sql_handle);
 		char_delete2_cancel_ack(fd, char_id, 2);
 		return;
@@ -4077,12 +4077,12 @@ int parse_char(int fd)
 						break;
 					}
 
-					if(SQL_SUCCESS != SQL->Query(sql_handle, "SELECT `char_id` FROM `%s` WHERE `account_id`='%d' AND `char_num`='%d'", char_db, sd->account_id, slot)
-					   || SQL_SUCCESS != SQL->NextRow(sql_handle)
-					   || SQL_SUCCESS != SQL->GetData(sql_handle, 0, &data, NULL)) {
+					if(SQL_SUCCESS != Sql_Query(sql_handle, "SELECT `char_id` FROM `%s` WHERE `account_id`='%d' AND `char_num`='%d'", char_db, sd->account_id, slot)
+					   || SQL_SUCCESS != Sql_NextRow(sql_handle)
+					   || SQL_SUCCESS != Sql_GetData(sql_handle, 0, &data, NULL)) {
 						//Not found?? May be forged packet.
 						Sql_ShowDebug(sql_handle);
-						SQL->FreeResult(sql_handle);
+						Sql_FreeResult(sql_handle);
 						WFIFOHEAD(fd,3);
 						WFIFOW(fd,0) = 0x6c;
 						WFIFOB(fd,2) = 0; // rejected from server
@@ -4091,7 +4091,7 @@ int parse_char(int fd)
 					}
 
 					char_id = atoi(data);
-					SQL->FreeResult(sql_handle);
+					Sql_FreeResult(sql_handle);
 					/* client doesn't let it get to this point if you're banned, so its a forged packet */
 				if(sd->found_char[slot] == char_id && sd->unban_time[slot] > time(NULL)) {
 					WFIFOHEAD(fd,3);
@@ -4120,8 +4120,8 @@ int parse_char(int fd)
 					if(log_char) {
 						char esc_name[NAME_LENGTH*2+1];
 
-						SQL->EscapeStringLen(sql_handle, esc_name, char_dat.name, strnlen(char_dat.name, NAME_LENGTH));
-						if(SQL_ERROR == SQL->Query(sql_handle, "INSERT INTO `%s`(`time`, `account_id`,`char_num`,`name`) VALUES (NOW(), '%d', '%d', '%s')",
+						Sql_EscapeStringLen(sql_handle, esc_name, char_dat.name, strnlen(char_dat.name, NAME_LENGTH));
+						if(SQL_ERROR == Sql_Query(sql_handle, "INSERT INTO `%s`(`time`, `account_id`,`char_num`,`name`) VALUES (NOW(), '%d', '%d', '%s')",
 						                          charlog_db, sd->account_id, slot, esc_name))
 							Sql_ShowDebug(sql_handle);
 					}
@@ -4373,7 +4373,7 @@ int parse_char(int fd)
 					break;
 				
 					normalize_name(name,TRIM_CHARS);
-					SQL->EscapeStringLen(sql_handle, esc_name, name, strnlen(name, NAME_LENGTH));
+					Sql_EscapeStringLen(sql_handle, esc_name, name, strnlen(name, NAME_LENGTH));
 					if( !check_char_name(name,esc_name) ) {
 						i = 1;
 						safestrncpy(sd->new_name, name, NAME_LENGTH);
@@ -4405,7 +4405,7 @@ int parse_char(int fd)
 						break;
 
 					normalize_name(name,TRIM_CHARS);
-					SQL->EscapeStringLen(sql_handle, esc_name, name, strnlen(name, NAME_LENGTH));
+					Sql_EscapeStringLen(sql_handle, esc_name, name, strnlen(name, NAME_LENGTH));
 					if(!check_char_name(name,esc_name)) {
 						i = 1;
 						safestrncpy(sd->new_name, name, NAME_LENGTH);
@@ -5146,7 +5146,7 @@ void do_final(void)
 	do_final_mapif();
 	do_final_loginif();
 
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s`", ragsrvinfo_db))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s`", ragsrvinfo_db))
 		Sql_ShowDebug(sql_handle);
 
 	char_db_->destroy(char_db_, NULL);
@@ -5158,7 +5158,7 @@ void do_final(void)
 		char_fd = -1;
 	}
 
-	SQL->Free(sql_handle);
+	Sql_Free(sql_handle);
 	mapindex->final();
 
 	for(i = 0; i < MAX_MAP_SERVERS; i++)
@@ -5268,15 +5268,15 @@ int do_init(int argc, char **argv)
 
 	//Cleaning the tables for NULL entrys @ startup [Sirius]
 	//Chardb clean
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `account_id` = '0'", char_db))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `account_id` = '0'", char_db))
 		Sql_ShowDebug(sql_handle);
 
 	//guilddb clean
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `guild_lv` = '0' AND `max_member` = '0' AND `exp` = '0' AND `next_exp` = '0' AND `average_lv` = '0'", guild_db))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `guild_lv` = '0' AND `max_member` = '0' AND `exp` = '0' AND `next_exp` = '0' AND `average_lv` = '0'", guild_db))
 		Sql_ShowDebug(sql_handle);
 
 	//guildmemberdb clean
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `guild_id` = '0' AND `account_id` = '0' AND `char_id` = '0'", guild_member_db))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `guild_id` = '0' AND `account_id` = '0' AND `char_id` = '0'", guild_member_db))
 		Sql_ShowDebug(sql_handle);
 
 	set_defaultparse(parse_char);

@@ -47,7 +47,7 @@ struct quest *mapif_quests_fromsql(int char_id, int *count) {
 	if(!count)
 		return NULL;
 
-	stmt = SQL->StmtMalloc(sql_handle);
+	stmt = SqlStmt_Malloc(sql_handle);
 	if(stmt == NULL) {
 		SqlStmt_ShowDebug(stmt);
 		*count = 0;
@@ -56,28 +56,28 @@ struct quest *mapif_quests_fromsql(int char_id, int *count) {
 
 	memset(&tmp_quest, 0, sizeof(struct quest));
 
-	if(SQL_ERROR == SQL->StmtPrepare(stmt, "SELECT `quest_id`, `state`, `time`, `count1`, `count2`, `count3` FROM `%s` WHERE `char_id`=?", quest_db)
-	   ||  SQL_ERROR == SQL->StmtBindParam(stmt, 0, SQLDT_INT, &char_id, 0)
-	   ||  SQL_ERROR == SQL->StmtExecute(stmt)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 0, SQLDT_INT,    &tmp_quest.quest_id, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 1, SQLDT_INT,    &tmp_quest.state, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 2, SQLDT_UINT,   &tmp_quest.time, 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 3, SQLDT_INT,    &tmp_quest.count[0], 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 4, SQLDT_INT,    &tmp_quest.count[1], 0, NULL, NULL)
-	   ||  SQL_ERROR == SQL->StmtBindColumn(stmt, 5, SQLDT_INT,    &tmp_quest.count[2], 0, NULL, NULL)
+	if(SQL_ERROR == SqlStmt_Prepare(stmt, "SELECT `quest_id`, `state`, `time`, `count1`, `count2`, `count3` FROM `%s` WHERE `char_id`=?", quest_db)
+	   ||  SQL_ERROR == SqlStmt_BindParam(stmt, 0, SQLDT_INT, &char_id, 0)
+	   ||  SQL_ERROR == SqlStmt_Execute(stmt)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 0, SQLDT_INT,    &tmp_quest.quest_id, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 1, SQLDT_INT,    &tmp_quest.state, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 2, SQLDT_UINT,   &tmp_quest.time, 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 3, SQLDT_INT,    &tmp_quest.count[0], 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 4, SQLDT_INT,    &tmp_quest.count[1], 0, NULL, NULL)
+	   ||  SQL_ERROR == SqlStmt_BindColumn(stmt, 5, SQLDT_INT,    &tmp_quest.count[2], 0, NULL, NULL)
 	   ) {
 		SqlStmt_ShowDebug(stmt);
-		SQL->StmtFree(stmt);
+		SqlStmt_Free(stmt);
 		*count = 0;
 		return NULL;
 	}
 
-	*count = (int)SQL->StmtNumRows(stmt);
+	*count = (int)SqlStmt_NumRows(stmt);
 	if (*count > 0) {
 		int i = 0;
 		questlog = (struct quest *)aCalloc(*count, sizeof(struct quest));
 
-		while (SQL_SUCCESS == SQL->StmtNextRow(stmt)) {
+		while (SQL_SUCCESS == SqlStmt_NextRow(stmt)) {
 			if (i >= *count) // Sanity check, should never happen
 				break;
 			memcpy(&questlog[i++], &tmp_quest, sizeof(tmp_quest));
@@ -89,7 +89,7 @@ struct quest *mapif_quests_fromsql(int char_id, int *count) {
 		}
 	}
 
-	SQL->StmtFree(stmt);
+	SqlStmt_Free(stmt);
 	return questlog;
 }
 
@@ -102,7 +102,7 @@ struct quest *mapif_quests_fromsql(int char_id, int *count) {
  */
 bool mapif_quest_delete(int char_id, int quest_id)
 {
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `quest_id` = '%d' AND `char_id` = '%d'", quest_db, quest_id, char_id)) {
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `quest_id` = '%d' AND `char_id` = '%d'", quest_db, quest_id, char_id)) {
 		Sql_ShowDebug(sql_handle);
 		return false;
 	}
@@ -119,7 +119,7 @@ bool mapif_quest_delete(int char_id, int quest_id)
  */
 bool mapif_quest_add(int char_id, struct quest qd)
 {
-	if(SQL_ERROR == SQL->Query(sql_handle, "INSERT INTO `%s`(`quest_id`, `char_id`, `state`, `time`, `count1`, `count2`, `count3`) VALUES ('%d', '%d', '%d','%d', '%d', '%d', '%d')", quest_db, qd.quest_id, char_id, qd.state, qd.time, qd.count[0], qd.count[1], qd.count[2])) {
+	if(SQL_ERROR == Sql_Query(sql_handle, "INSERT INTO `%s`(`quest_id`, `char_id`, `state`, `time`, `count1`, `count2`, `count3`) VALUES ('%d', '%d', '%d','%d', '%d', '%d', '%d')", quest_db, qd.quest_id, char_id, qd.state, qd.time, qd.count[0], qd.count[1], qd.count[2])) {
 		Sql_ShowDebug(sql_handle);
 		return false;
 	}
@@ -136,7 +136,7 @@ bool mapif_quest_add(int char_id, struct quest qd)
  */
 bool mapif_quest_update(int char_id, struct quest qd)
 {
-	if(SQL_ERROR == SQL->Query(sql_handle, "UPDATE `%s` SET `state`='%d', `count1`='%d', `count2`='%d', `count3`='%d' WHERE `quest_id` = '%d' AND `char_id` = '%d'", quest_db, qd.state, qd.count[0], qd.count[1], qd.count[2], qd.quest_id, char_id)) {
+	if(SQL_ERROR == Sql_Query(sql_handle, "UPDATE `%s` SET `state`='%d', `count1`='%d', `count2`='%d', `count3`='%d' WHERE `quest_id` = '%d' AND `char_id` = '%d'", quest_db, qd.state, qd.count[0], qd.count[1], qd.count[2], qd.quest_id, char_id)) {
 		Sql_ShowDebug(sql_handle);
 		return false;
 	}

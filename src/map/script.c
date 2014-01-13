@@ -2144,16 +2144,16 @@ void read_constdb(void) {
 	Sql *tmp_ptr = mmysql_handle;
 	int i, count = 0, type;
 
-	if(SQL_ERROR == SQL->Query(tmp_ptr, "SELECT * FROM `%s`.`%s`", db_db2name, get_database_name(59))) {
+	if(SQL_ERROR == Sql_Query(tmp_ptr, "SELECT * FROM `%s`.`%s`", db_db2name, get_database_name(59))) {
 		Sql_ShowDebug(tmp_ptr);
 		return;
 	}
 
-	while(SQL_SUCCESS == SQL->NextRow(tmp_ptr)) {
+	while(SQL_SUCCESS == Sql_NextRow(tmp_ptr)) {
 		char *row[3], in_line[1024], constant[1024], val[1024];
 
 		for(i = 0; i < 3; ++i)
-			SQL->GetData(tmp_ptr, i, &row[i], NULL);
+			Sql_GetData(tmp_ptr, i, &row[i], NULL);
 			
 		sprintf(in_line, "%s %s %s", row[0], row[1], row[2]);
 		
@@ -2163,7 +2163,7 @@ void read_constdb(void) {
 	}
 
 	ShowSQL("Leitura de '"CL_WHITE"%d"CL_RESET"' entradas na tabela '"CL_WHITE"%s"CL_RESET"'.\n", count, get_database_name(59));
-	SQL->FreeResult(tmp_ptr);
+	Sql_FreeResult(tmp_ptr);
 }
 
 // Standard UNIX tab size is 8
@@ -2637,7 +2637,50 @@ void *get_val2(struct script_state *st, int64 uid, struct DBMap **ref)
 	script->push_val(st->stack, C_NAME, uid, ref);
 	data = script_getdatatop(st, -1);
 	script->get_val(st, data);
-	return (data->type == C_INT ? (void *)__64BPRTSIZE(data->u.num) : (void *)__64BPRTSIZE(data->u.str));
+	return (data->type == C_INT ? (void *)__64BPRTSIZE((int32)data->u.num) : (void *)__64BPRTSIZE(data->u.str)); // u.num is int32 because it comes from script->get_val
+}
+/**
+ * Because, currently, array members with key 0 are indifferenciable from normal variables, we should ensure its actually in
+ * Will be gone as soon as undefined var feature is implemented
+ **/
+void script_array_ensure_zero(struct script_state *st, struct map_session_data *sd, int64 uid, struct DBMap** ref) {
+	const char *name = script->get_str(script_getvarid(uid));
+	struct DBMap *src = script->array_src(st, sd ? sd : st->rid ? map_id2sd(st->rid) : NULL, name);\
+	struct script_array *sa = NULL;
+	bool insert = false;
+
+	if(sd) /* when sd comes, st isn't available */
+		insert = true;
+	else {
+		if(is_string_variable(name)) {
+			char* str = (char*)script->get_val2(st, uid, ref);
+			if(str && *str)
+				insert = true;
+			script_removetop(st, -1, 0);
+		} else {
+			int32 num = (int32)__64BPRTSIZE(script->get_val2(st, uid, ref));
+			if(num)
+				insert = true;
+			script_removetop(st, -1, 0);
+		}
+	}
+
+	if(src) {
+		if((sa = idb_get(src, script_getvarid(uid)))) {
+			unsigned int i;
+
+			ARR_FIND(0, sa->size, i, sa->members[i] == 0);
+			if(i != sa->size) {
+				if(!insert)
+					script->array_remove_member(src,sa,i);
+				return;
+			}
+
+			script->array_add_member(sa,0);
+		} else if(insert) {
+			script->array_update(&src,reference_uid(script_getvarid(uid), 0),false);
+		}
+	}
 }
 /**
  * Returns array size by ID
@@ -2658,15 +2701,22 @@ unsigned int script_array_highest_key(struct script_state *st, struct map_sessio
 	struct script_array *sa = NULL;
 	struct DBMap *src = script->array_src(st, sd, name);
 
-	if(src && (sa = idb_get(src, script->search_str(name)))) {
-		unsigned int i, highest_key = 0;
 
-		for(i = 0; i < sa->size; i++) {
-			if(sa->members[i] > highest_key)
-				highest_key = sa->members[i];
+	if(src) {
+		int key = script->add_word(name);
+
+		script->array_ensure_zero(st,sd,reference_uid(key, 0),NULL);
+
+		if((sa = idb_get(src, key))) {
+			unsigned int i, highest_key = 0;
+
+			for(i = 0; i < sa->size; i++) {
+				if(sa->members[i] > highest_key)
+					highest_key = sa->members[i];
+			}
+
+			return sa->size ? highest_key + 1 : 0;
 		}
-
-		return highest_key + 1;
 	}
 	
 	return 0;
@@ -2831,20 +2881,20 @@ int set_reg(struct script_state *st, TBL_PC *sd, int64 num, const char *name, co
 							i64db_put(n, num, aStrdup(str));
 							if(script_getvaridx(num))
 								script->array_update(
-													 (name[1] == '@') ?
-														&st->stack->array_function_db :
-														&st->script->script_arrays_db,
-													 num,
-													 false);
+								                     (name[1] == '@') ?
+								                        &st->stack->array_function_db :
+								                        &st->script->script_arrays_db,
+								                     num,
+								                     false);
 						} else {
 							i64db_remove(n, num);
 							if(script_getvaridx(num))
 								script->array_update(
-													 (name[1] == '@') ?
-													 &st->stack->array_function_db :
-													 &st->script->script_arrays_db,
-													 num,
-													 true);
+								                     (name[1] == '@') ?
+								                         &st->stack->array_function_db :
+								                         &st->script->script_arrays_db,
+								                     num,
+								                     true);
 						}
 					}
 				}
@@ -2902,20 +2952,20 @@ int set_reg(struct script_state *st, TBL_PC *sd, int64 num, const char *name, co
 							i64db_iput(n, num, val);
 							if(script_getvaridx(num))
 								script->array_update(
-													 (name[1] == '@') ?
-													 &st->stack->array_function_db :
-													 &st->script->script_arrays_db,
-													 num,
-													 false);
+								                     (name[1] == '@') ?
+								                         &st->stack->array_function_db :
+								                         &st->script->script_arrays_db,
+								                     num,
+								                     false);
 						} else {
 							i64db_remove(n, num);
 							if(script_getvaridx(num))
 								script->array_update(
-													 (name[1] == '@') ?
-													 &st->stack->array_function_db :
-													 &st->script->script_arrays_db,
-													 num,
-													 true);
+								                     (name[1] == '@') ?
+								                         &st->stack->array_function_db :
+								                         &st->script->script_arrays_db,
+								                     num,
+								                     true);
 						}
 					}
 				}
@@ -4044,6 +4094,9 @@ void script_cleararray_pc(struct map_session_data *sd, const char *varname, void
 	if(!(src = script->array_src(NULL,sd,varname)))
 		return;
 
+	if(value)
+		script->array_ensure_zero(NULL,sd,reference_uid(key,0),NULL);
+
 	if(!(sa = idb_get(src, key))) /* non-existent array, nothing to empty */
 		return;
 
@@ -4079,15 +4132,15 @@ void script_setarray_pc(struct map_session_data *sd, const char *varname, uint32
  * Clears persistent variables from memory
  **/
 int script_reg_destroy(DBKey key, DBData *data, va_list ap) {
-	void *src;
+	struct script_reg_state *src;
 
 	if(data->type != DB_DATA_PTR)/* got no need for those! */
 		return 0;
 
 	src = DB->data2ptr(data);
 
-	if(((struct script_reg_state*)src)->type) {
-		struct script_reg_str *p = src;
+	if(src->type) {
+		struct script_reg_str *p = (struct script_reg_str *)src;
 
 		if(p->value)
 			aFree(p->value);
@@ -4466,8 +4519,8 @@ void do_init_script(void) {
 	script->userfunc_db = strdb_alloc(DB_OPT_DUP_KEY,0);
 	script->autobonus_db = strdb_alloc(DB_OPT_DUP_KEY,0);
 
-	script->st_ers = ers_new(sizeof(struct script_state), "script.c::st_ers", ERS_OPT_CLEAN);
-	script->stack_ers = ers_new(sizeof(struct script_stack), "script.c::script_stack", ERS_OPT_NONE);
+	script->st_ers = ers_new(sizeof(struct script_state), "script.c::st_ers", ERS_OPT_CLEAN|ERS_OPT_FLEX_CHUNK);
+	script->stack_ers = ers_new(sizeof(struct script_stack), "script.c::script_stack", ERS_OPT_NONE|ERS_OPT_FLEX_CHUNK);
 	script->array_ers = ers_new(sizeof(struct script_array), "script.c::array_ers", ERS_OPT_CLEAN|ERS_OPT_CLEAR);
 
 	ers_chunk_size(script->st_ers, 10);
@@ -5998,7 +6051,11 @@ BUILDIN_FUNC(deletearray)
 		script->reportdata(data);
 		st->state = END;
 		return 1;// not a variable
-	} else if (!(sa = idb_get(src, id))) { /* non-existent array, nothing to empty */
+	}
+
+	script->array_ensure_zero(st,NULL,data->u.num,reference_getref(data));
+
+	if(!(sa = idb_get(src, id))) { /* non-existent array, nothing to empty */
 		return 1;// not a variable
 	}
 
@@ -14693,20 +14750,20 @@ int buildin_query_sql_sub(struct script_state *st, Sql *handle)
 	// Execute the query
 	query = script_getstr(st,2);
 
-	if(SQL_ERROR == SQL->QueryStr(handle, query)) {
+	if(SQL_ERROR == Sql_QueryStr(handle, query)) {
 		Sql_ShowDebug(handle);
 		st->state = END;
 		return 1;
 	}
 
-	if(SQL->NumRows(handle) == 0) {   // No data received
-		SQL->FreeResult(handle);
+	if(Sql_NumRows(handle) == 0) {   // No data received
+		Sql_FreeResult(handle);
 		script_pushint(st, 0);
 		return 0;
 	}
 
 	// Count the number of columns to store
-	num_cols = SQL->NumColumns(handle);
+	num_cols = Sql_NumColumns(handle);
 	if(num_vars < num_cols) {
 		ShowWarning("script:query_sql: Too many columns, discarding last %u columns.\n", (unsigned int)(num_cols-num_vars));
 		script->reportsrc(st);
@@ -14716,12 +14773,12 @@ int buildin_query_sql_sub(struct script_state *st, Sql *handle)
 	}
 
 	// Store data
-	for(i = 0; i < max_rows && SQL_SUCCESS == SQL->NextRow(handle); ++i) {
+	for(i = 0; i < max_rows && SQL_SUCCESS == Sql_NextRow(handle); ++i) {
 		for(j = 0; j < num_vars; ++j) {
 			char *str = NULL;
 
 			if(j < num_cols)
-				SQL->GetData(handle, j, &str, NULL);
+				Sql_GetData(handle, j, &str, NULL);
 
 			data = script_getdata(st, j+3);
 			name = reference_getname(data);
@@ -14731,13 +14788,13 @@ int buildin_query_sql_sub(struct script_state *st, Sql *handle)
 				script->setd_sub(st, sd, name, i, (void *)__64BPRTSIZE((str?atoi(str):0)), reference_getref(data));
 		}
 	}
-	if(i == max_rows && max_rows < SQL->NumRows(handle)) {
-		ShowWarning("script:query_sql: Only %d/%u rows have been stored.\n", max_rows, (unsigned int)SQL->NumRows(handle));
+	if(i == max_rows && max_rows < Sql_NumRows(handle)) {
+		ShowWarning("script:query_sql: Only %d/%u rows have been stored.\n", max_rows, (unsigned int)Sql_NumRows(handle));
 		script->reportsrc(st);
 	}
 
 	// Free data
-	SQL->FreeResult(handle);
+	Sql_FreeResult(handle);
 	script_pushint(st, i);
 
 	return 0;
@@ -14790,7 +14847,7 @@ BUILDIN_FUNC(escape_sql)
 	str = script_getstr(st,2);
 	len = strlen(str);
 	esc_str = (char *)aMalloc(len*2+1);
-	SQL->EscapeStringLen(mmysql_handle, esc_str, str, len);
+	Sql_EscapeStringLen(mmysql_handle, esc_str, str, len);
 	script_pushstr(st, esc_str);
 	return 0;
 }
@@ -16782,11 +16839,15 @@ BUILDIN_FUNC(has_instance)
 	const char *str;
 	int16 m;
 	int instance_id = -1;
+	bool type = strcmp(script->getfuncname(st),"has_instance2") == 0 ? true : false;
 
  	str = script_getstr(st, 2);
 
 	if((m = map_mapname2mapid(str)) < 0) {
-		script_pushconststr(st, "");
+		if(type)
+			script_pushint(st, -1);
+		else
+			script_pushconststr(st, "");
 		return 0;
 	}
 
@@ -16833,11 +16894,17 @@ BUILDIN_FUNC(has_instance)
 	}
 	
 	if(!instance->valid(instance_id) || (m = instance->map2imap(m, instance_id)) < 0) {
-		script_pushconststr(st, "");
+		if(type)
+			script_pushint(st, -1);
+		else
+			script_pushconststr(st, "");
 		return 0;
 	}
 
-	script_pushconststr(st, map[m].name);
+	if(type)
+		script_pushint(st, instance_id);
+	else
+		script_pushconststr(st, map[m].name);
 	return 0;
 }
 int buildin_instance_warpall_sub(struct block_list *bl,va_list ap) {
@@ -19298,6 +19365,7 @@ void script_parse_builtin(void) {
 	BUILDIN_DEF(instance_check_party,"i???"),
 	BUILDIN_DEF(instance_mapname,"s?"),
 	BUILDIN_DEF(instance_set_respawn,"sii?"),
+	BUILDIN_DEF2(has_instance,"has_instance2","s"),
 
 	/**
 	 * 3rd-related
@@ -19655,6 +19723,7 @@ void script_defaults(void) {
 	script->array_size = script_array_size;
 	script->array_free_db = script_free_array_db;
 	script->array_highest_key = script_array_highest_key;
+	script->array_ensure_zero = script_array_ensure_zero;
 	/* */
 	script->reg_destroy_single = script_reg_destroy_single;
 	script->reg_destroy = script_reg_destroy;

@@ -3599,7 +3599,7 @@ void sv_readsqldb(char *name, char *next_name, int param_size, int max_allowed, 
 			else
 				break;
 		}
-		if(SQL_ERROR == SQL->Query(dbmysql_handle, "SELECT * FROM `%s`", db_name[i])) {
+		if(SQL_ERROR == Sql_Query(dbmysql_handle, "SELECT * FROM `%s`", db_name[i])) {
 			Sql_ShowDebug(dbmysql_handle);
 			if(i != 1)
 				continue;
@@ -3607,7 +3607,7 @@ void sv_readsqldb(char *name, char *next_name, int param_size, int max_allowed, 
 				break;
 		}
 
-		while(SQL_SUCCESS == SQL->NextRow(dbmysql_handle)) {
+		while(SQL_SUCCESS == Sql_NextRow(dbmysql_handle)) {
 			char *str[MAX_QUERY_ROWS];
 			int8 j;
 			++lines;
@@ -3619,7 +3619,7 @@ void sv_readsqldb(char *name, char *next_name, int param_size, int max_allowed, 
 
 			str[(param_size + 1)] = '\0';
 			for(j = 0; j < param_size; ++j) {
-				SQL->GetData(dbmysql_handle, j, &str[j], NULL);
+				Sql_GetData(dbmysql_handle, j, &str[j], NULL);
 				if(str[j] == NULL)
 					str[j] = "";
 			}
@@ -3630,7 +3630,7 @@ void sv_readsqldb(char *name, char *next_name, int param_size, int max_allowed, 
 		}
 
 		ShowSQL(read_message("Source.reuse.reuse_readsql"), CL_WHITE, count, CL_RESET, CL_WHITE, db_name[i], CL_RESET);
-		SQL->FreeResult(dbmysql_handle);
+		Sql_FreeResult(dbmysql_handle);
 	}
 }
 
@@ -3728,15 +3728,15 @@ char *get_database_name(int database_id)
 int map_sql_init(void)
 {
 	// main db connection
-	mmysql_handle = SQL->Malloc();
+	mmysql_handle = Sql_Malloc();
 
 	ShowInfo("Conectando com o banco de dados do map-server....\n");
-	if(SQL_ERROR == SQL->Connect(mmysql_handle, map_server_id, map_server_pw, map_server_ip, map_server_port, map_server_db))
+	if(SQL_ERROR == Sql_Connect(mmysql_handle, map_server_id, map_server_pw, map_server_ip, map_server_port, map_server_db))
 		exit(EXIT_FAILURE);
 	ShowStatus("Conex%co efetuada com sucesso! (map-server)\n", 198);
 
 	if(strlen(default_codepage) > 0)
-	if(SQL_ERROR == SQL->SetEncoding(mmysql_handle, default_codepage))
+	if(SQL_ERROR == Sql_SetEncoding(mmysql_handle, default_codepage))
 			Sql_ShowDebug(mmysql_handle);
 
 	return 0;
@@ -3745,14 +3745,14 @@ int map_sql_init(void)
 int map_sql_close(void)
 {
 	ShowStatus("Fechada conex%co com banco de dados do map-server....\n", 198);
-	SQL->Free(mmysql_handle);
+	Sql_Free(mmysql_handle);
 	mmysql_handle = NULL;
-	SQL->Free(dbmysql_handle);
+	Sql_Free(dbmysql_handle);
 	dbmysql_handle = NULL;
 #ifndef BETA_THREAD_TEST
 	if(log_config.sql_logs) {
 		ShowStatus("Fechada conex%co com banco de dados de logs....\n", 198);
-		SQL->Free(logmysql_handle);
+		Sql_Free(logmysql_handle);
 		logmysql_handle = NULL;
 	}
 #endif
@@ -3763,15 +3763,15 @@ int log_sql_init(void)
 {
 #ifndef BETA_THREAD_TEST
 	// log db connection
-	logmysql_handle = SQL->Malloc();
+	logmysql_handle = Sql_Malloc();
 
 	ShowInfo("Conectando com o banco de dados de logs "CL_WHITE"%s"CL_RESET" em "CL_WHITE"%s"CL_RESET"...\n",log_db_db,log_db_ip);
-	if(SQL_ERROR == SQL->Connect(logmysql_handle, log_db_id, log_db_pw, log_db_ip, log_db_port, log_db_db))
+	if(SQL_ERROR == Sql_Connect(logmysql_handle, log_db_id, log_db_pw, log_db_ip, log_db_port, log_db_db))
 		exit(EXIT_FAILURE);
 	ShowStatus("Conex%co efetuada com sucesso no banco de dados '"CL_WHITE"%s"CL_RESET"'.\n", 198, log_db_db);
 
 	if(strlen(default_codepage) > 0)
-	if(SQL_ERROR == SQL->SetEncoding(logmysql_handle, default_codepage))
+	if(SQL_ERROR == Sql_SetEncoding(logmysql_handle, default_codepage))
 			Sql_ShowDebug(logmysql_handle);
 #endif
 	return 0;
@@ -3779,11 +3779,11 @@ int log_sql_init(void)
 
 int db_sql_init(void)
 {
-	dbmysql_handle = SQL->Malloc();
+	dbmysql_handle = Sql_Malloc();
 
 	ShowInfo(read_message("Source.map.map_db_sql_init"), CL_WHITE, db_db2name, CL_RESET, CL_WHITE, db_ip, CL_RESET);
 
-	if(SQL_ERROR == SQL->Connect(dbmysql_handle, db_id, db_pw, db_ip, db_port, db_db2name))
+	if(SQL_ERROR == Sql_Connect(dbmysql_handle, db_id, db_pw, db_ip, db_port, db_db2name))
 		exit(EXIT_FAILURE);
 
 	ShowStatus("Conex%co efetuada com sucesso no banco de dados '"CL_WHITE"%s"CL_RESET"'.\n", 198, db_db2name);
@@ -5547,9 +5547,10 @@ int do_init(int argc, char *argv[])
 	iwall_db = strdb_alloc(DB_OPT_RELEASE_DATA,2*NAME_LENGTH+2+1); // [Zephyrus] Invisible Walls
 	zone_db = strdb_alloc(DB_OPT_DUP_KEY|DB_OPT_RELEASE_DATA, MAP_ZONE_NAME_LENGTH);
 
-	map_iterator_ers = ers_new(sizeof(struct s_mapiterator),"map.c::map_iterator_ers",ERS_OPT_CLEAN);
+	map_iterator_ers = ers_new(sizeof(struct s_mapiterator),"map.c::map_iterator_ers",ERS_OPT_CLEAN|ERS_OPT_FLEX_CHUNK);
+	ers_chunk_size(map_iterator_ers, 25);
 
-	flooritem_ers = ers_new(sizeof(struct flooritem_data),"map.c::map_flooritem_ers",ERS_OPT_CLEAN);
+	flooritem_ers = ers_new(sizeof(struct flooritem_data),"map.c::map_flooritem_ers",ERS_OPT_CLEAN|ERS_OPT_FLEX_CHUNK);
 	ers_chunk_size(flooritem_ers, 100);
 
 	map_sql_init();

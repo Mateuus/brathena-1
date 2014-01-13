@@ -121,16 +121,16 @@ int Sql_Connect(Sql *self, const char *user, const char *passwd, const char *hos
 /// Retrieves the timeout of the connection.
 int Sql_GetTimeout(Sql *self, uint32 *out_timeout)
 {
-	if(self && out_timeout && SQL_SUCCESS == SQL->Query(self, "SHOW VARIABLES LIKE 'wait_timeout'")) {
+	if(self && out_timeout && SQL_SUCCESS == Sql_Query(self, "SHOW VARIABLES LIKE 'wait_timeout'")) {
 		char *data;
 		size_t len;
-		if (SQL_SUCCESS == SQL->NextRow(self) &&
-			SQL_SUCCESS == SQL->GetData(self, 1, &data, &len)) {
+		if(SQL_SUCCESS == Sql_NextRow(self) &&
+		   SQL_SUCCESS == Sql_GetData(self, 1, &data, &len)) {
 			*out_timeout = (uint32)strtoul(data, NULL, 10);
-			SQL->FreeResult(self);
+			Sql_FreeResult(self);
 			return SQL_SUCCESS;
 		}
-		SQL->FreeResult(self);
+		Sql_FreeResult(self);
 	}
 	return SQL_ERROR;
 }
@@ -144,11 +144,11 @@ int Sql_GetColumnNames(Sql *self, const char *table, char *out_buf, size_t buf_l
 	size_t len;
 	size_t off = 0;
 
-	if(self == NULL || SQL_ERROR == SQL->Query(self, (read_message("Source.common.sql_getcolumnames")), table))
+	if(self == NULL || SQL_ERROR == Sql_Query(self, (read_message("Source.common.sql_getcolumnames")), table))
 		return SQL_ERROR;
 
 	out_buf[off] = '\0';
-	while(SQL_SUCCESS == SQL->NextRow(self) && SQL_SUCCESS == SQL->GetData(self, 0, &data, &len)) {
+	while(SQL_SUCCESS == Sql_NextRow(self) && SQL_SUCCESS == Sql_GetData(self, 0, &data, &len)) {
 		len = strnlen(data, len);
 		if(off + len + 2 > buf_len) {
 			ShowDebug(read_message("Source.common.sql_getcolumnames2"));
@@ -160,7 +160,7 @@ int Sql_GetColumnNames(Sql *self, const char *table, char *out_buf, size_t buf_l
 		out_buf[off++] = sep;
 	}
 	out_buf[off] = '\0';
-	SQL->FreeResult(self);
+	Sql_FreeResult(self);
 	return SQL_SUCCESS;
 }
 
@@ -253,7 +253,7 @@ int Sql_Query(Sql *self, const char *query, ...)
 	va_list args;
 
 	va_start(args, query);
-	res = SQL->QueryV(self, query, args);
+	res = Sql_QueryV(self, query, args);
 	va_end(args);
 
 	return res;
@@ -267,7 +267,7 @@ int Sql_QueryV(Sql *self, const char *query, va_list args)
 	if(self == NULL)
 		return SQL_ERROR;
 
-	SQL->FreeResult(self);
+	Sql_FreeResult(self);
 	StrBuf->Clear(&self->buf);
 	StrBuf->Vprintf(&self->buf, query, args);
 	if(mysql_real_query(&self->handle, StrBuf->Value(&self->buf), (unsigned long)StrBuf->Length(&self->buf))) {
@@ -292,7 +292,7 @@ int Sql_QueryStr(Sql *self, const char *query)
 	if(self == NULL)
 		return SQL_ERROR;
 
-	SQL->FreeResult(self);
+	Sql_FreeResult(self);
 	StrBuf->Clear(&self->buf);
 	StrBuf->AppendStr(&self->buf, query);
 	if(mysql_real_query(&self->handle, StrBuf->Value(&self->buf), (unsigned long)StrBuf->Length(&self->buf))) {
@@ -364,7 +364,7 @@ int Sql_NextRow(Sql *self)
 int Sql_GetData(Sql *self, size_t col, char **out_buf, size_t *out_len)
 {
 	if(self && self->row) {
-		if(col < SQL->NumColumns(self)) {
+		if(col < Sql_NumColumns(self)) {
 			if(out_buf) *out_buf = self->row[col];
 			if(out_len) *out_len = (size_t)self->lengths[col];
 		} else {
@@ -380,7 +380,8 @@ int Sql_GetData(Sql *self, size_t col, char **out_buf, size_t *out_len)
 
 
 /// Frees the result of the query.
-void Sql_FreeResult(Sql* self) {
+void Sql_FreeResult(Sql *self)
+{
 	if(self && self->result) {
 		mysql_free_result(self->result);
 		self->result = NULL;
@@ -614,7 +615,7 @@ int SqlStmt_Prepare(SqlStmt *self, const char *query, ...)
 	va_list args;
 
 	va_start(args, query);
-	res = SQL->StmtPrepareV(self, query, args);
+	res = SqlStmt_PrepareV(self, query, args);
 	va_end(args);
 
 	return res;
@@ -628,7 +629,7 @@ int SqlStmt_PrepareV(SqlStmt *self, const char *query, va_list args)
 	if(self == NULL)
 		return SQL_ERROR;
 
-	SQL->StmtFreeResult(self);
+	SqlStmt_FreeResult(self);
 	StrBuf->Clear(&self->buf);
 	StrBuf->Vprintf(&self->buf, query, args);
 	if(mysql_stmt_prepare(self->stmt, StrBuf->Value(&self->buf), (unsigned long)StrBuf->Length(&self->buf))) {
@@ -649,10 +650,10 @@ int SqlStmt_PrepareStr(SqlStmt *self, const char *query)
 	if(self == NULL)
 		return SQL_ERROR;
 
-	SQL->StmtFreeResult(self);
+	SqlStmt_FreeResult(self);
 	StrBuf->Clear(&self->buf);
 	StrBuf->AppendStr(&self->buf, query);
-	if(mysql_stmt_prepare(self->stmt, StrBuf->Value(&self->buf), (unsigned long)StrBuf->Length(&self->buf))) {
+	if (mysql_stmt_prepare(self->stmt, StrBuf->Value(&self->buf), (unsigned long)StrBuf->Length(&self->buf))) {
 		ShowSQL(read_message("Source.reuse.reuse_sql_queryv"), mysql_stmt_error(self->stmt));
 		brathena_mysql_error_handler(mysql_stmt_errno(self->stmt));
 		return SQL_ERROR;
@@ -710,7 +711,7 @@ int SqlStmt_Execute(SqlStmt *self)
 	if(self == NULL)
 		return SQL_ERROR;
 
-	SQL->StmtFreeResult(self);
+	SqlStmt_FreeResult(self);
 	if((self->bind_params && mysql_stmt_bind_param(self->stmt, self->params)) ||
 	   mysql_stmt_execute(self->stmt)) {
 		ShowSQL(read_message("Source.reuse.reuse_sql_queryv"), mysql_stmt_error(self->stmt));
@@ -890,7 +891,7 @@ int SqlStmt_NextRow(SqlStmt *self)
 
 
 /// Frees the result of the statement execution.
-void SqlStmt_FreeResult(SqlStmt* self)
+void SqlStmt_FreeResult(SqlStmt *self)
 {
 	if(self)
 		mysql_stmt_free_result(self->stmt);
@@ -986,44 +987,4 @@ void Sql_inter_server_read(const char* cfgName, bool first) {
 
 void Sql_Init(void) {
 	Sql_inter_server_read("conf/inter-server.conf",true);
-}
-void sql_defaults(void) {
-	SQL = &sql_s;
-
-	SQL->Connect = Sql_Connect;
-	SQL->GetTimeout = Sql_GetTimeout;
-	SQL->GetColumnNames = Sql_GetColumnNames;
-	SQL->SetEncoding = Sql_SetEncoding;
-	SQL->Ping = Sql_Ping;
-	SQL->EscapeString = Sql_EscapeString;
-	SQL->EscapeStringLen = Sql_EscapeStringLen;
-	SQL->Query = Sql_Query;
-	SQL->QueryV = Sql_QueryV;
-	SQL->QueryStr = Sql_QueryStr;
-	SQL->LastInsertId = Sql_LastInsertId;
-	SQL->NumColumns = Sql_NumColumns;
-	SQL->NumRows = Sql_NumRows;
-	SQL->NextRow = Sql_NextRow;
-	SQL->GetData = Sql_GetData;
-	SQL->FreeResult = Sql_FreeResult;
-	SQL->ShowDebug_ = Sql_ShowDebug_;
-	SQL->Free = Sql_Free;
-	SQL->Malloc = Sql_Malloc;
-
-	/* SqlStmt defaults [Susu] */
-	SQL->StmtBindColumn = SqlStmt_BindColumn;
-	SQL->StmtBindParam = SqlStmt_BindParam;
-	SQL->StmtExecute = SqlStmt_Execute;
-	SQL->StmtFree = SqlStmt_Free;
-	SQL->StmtFreeResult = SqlStmt_FreeResult;
-	SQL->StmtLastInsertId = SqlStmt_LastInsertId;
-	SQL->StmtMalloc = SqlStmt_Malloc;
-	SQL->StmtNextRow = SqlStmt_NextRow;
-	SQL->StmtNumColumns = SqlStmt_NumColumns;
-	SQL->StmtNumParams = SqlStmt_NumParams;
-	SQL->StmtNumRows = SqlStmt_NumRows;
-	SQL->StmtPrepare = SqlStmt_Prepare;
-	SQL->StmtPrepareStr = SqlStmt_PrepareStr;
-	SQL->StmtPrepareV = SqlStmt_PrepareV;
-	SQL->StmtShowDebug_ = SqlStmt_ShowDebug_;
 }

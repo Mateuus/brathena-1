@@ -67,16 +67,16 @@ void auction_save(struct auction_data *auction)
 		StrBuf->Printf(&buf, ", `card%d` = '%d'", j, auction->item.card[j]);
 	StrBuf->Printf(&buf, " WHERE `auction_id` = '%d'", auction->auction_id);
 
-	stmt = SQL->StmtMalloc(sql_handle);
-	if(SQL_SUCCESS != SQL->StmtPrepareStr(stmt, StrBuf->Value(&buf))
-		|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 0, SQLDT_STRING, auction->seller_name, strnlen(auction->seller_name, NAME_LENGTH))
-		|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 1, SQLDT_STRING, auction->buyer_name, strnlen(auction->buyer_name, NAME_LENGTH))
-		|| SQL_SUCCESS != SQL->StmtBindParam(stmt, 2, SQLDT_STRING, auction->item_name, strnlen(auction->item_name, ITEM_NAME_LENGTH))
-		|| SQL_SUCCESS != SQL->StmtExecute(stmt)) {
+	stmt = SqlStmt_Malloc(sql_handle);
+	if (SQL_SUCCESS != SqlStmt_PrepareStr(stmt, StrBuf->Value(&buf))
+		|| SQL_SUCCESS != SqlStmt_BindParam(stmt, 0, SQLDT_STRING, auction->seller_name, strnlen(auction->seller_name, NAME_LENGTH))
+		|| SQL_SUCCESS != SqlStmt_BindParam(stmt, 1, SQLDT_STRING, auction->buyer_name, strnlen(auction->buyer_name, NAME_LENGTH))
+		|| SQL_SUCCESS != SqlStmt_BindParam(stmt, 2, SQLDT_STRING, auction->item_name, strnlen(auction->item_name, ITEM_NAME_LENGTH))
+		|| SQL_SUCCESS != SqlStmt_Execute(stmt)) {
 		SqlStmt_ShowDebug(stmt);
 	}
 
-	SQL->StmtFree(stmt);
+	SqlStmt_Free(stmt);
 	StrBuf->Destroy(&buf);
 }
 
@@ -105,12 +105,12 @@ unsigned int auction_create(struct auction_data *auction)
 	updateLastUid(auction->item.unique_id);
 	dbUpdateUid(sql_handle);
 
-	stmt = SQL->StmtMalloc(sql_handle);
-	if (SQL_SUCCESS != SQL->StmtPrepareStr(stmt, StrBuf->Value(&buf))
-	   ||  SQL_SUCCESS != SQL->StmtBindParam(stmt, 0, SQLDT_STRING, auction->seller_name, strnlen(auction->seller_name, NAME_LENGTH))
-	   ||  SQL_SUCCESS != SQL->StmtBindParam(stmt, 1, SQLDT_STRING, auction->buyer_name, strnlen(auction->buyer_name, NAME_LENGTH))
-	   ||  SQL_SUCCESS != SQL->StmtBindParam(stmt, 2, SQLDT_STRING, auction->item_name, strnlen(auction->item_name, ITEM_NAME_LENGTH))
-	   ||  SQL_SUCCESS != SQL->StmtExecute(stmt)) {
+	stmt = SqlStmt_Malloc(sql_handle);
+	if (SQL_SUCCESS != SqlStmt_PrepareStr(stmt, StrBuf->Value(&buf))
+	   ||  SQL_SUCCESS != SqlStmt_BindParam(stmt, 0, SQLDT_STRING, auction->seller_name, strnlen(auction->seller_name, NAME_LENGTH))
+	   ||  SQL_SUCCESS != SqlStmt_BindParam(stmt, 1, SQLDT_STRING, auction->buyer_name, strnlen(auction->buyer_name, NAME_LENGTH))
+	   ||  SQL_SUCCESS != SqlStmt_BindParam(stmt, 2, SQLDT_STRING, auction->item_name, strnlen(auction->item_name, ITEM_NAME_LENGTH))
+	   ||  SQL_SUCCESS != SqlStmt_Execute(stmt)) {
 		SqlStmt_ShowDebug(stmt);
 		auction->auction_id = 0;
 	} else {
@@ -121,7 +121,7 @@ unsigned int auction_create(struct auction_data *auction)
 		auction->item.identify = 1;
 		auction->item.expire_time = 0;
 
-		auction->auction_id = (unsigned int)SQL->StmtLastInsertId(stmt);
+		auction->auction_id = (unsigned int)SqlStmt_LastInsertId(stmt);
 		auction->auction_end_timer = add_timer(gettick() + tick , auction_end_timer, auction->auction_id, 0);
 		ShowInfo(read_message("Source.char.auction_create"), auction->auction_id, tick, auction->seller_name);
 
@@ -130,7 +130,7 @@ unsigned int auction_create(struct auction_data *auction)
 		idb_put(auction_db_, auction_->auction_id, auction_);
 	}
 
-	SQL->StmtFree(stmt);
+	SqlStmt_Free(stmt);
 	StrBuf->Destroy(&buf);
 
 	return auction->auction_id;
@@ -170,7 +170,7 @@ void auction_delete(struct auction_data *auction)
 {
 	unsigned int auction_id = auction->auction_id;
 
-	if(SQL_ERROR == SQL->Query(sql_handle, "DELETE FROM `%s` WHERE `auction_id` = '%d'", auction_db, auction_id))
+	if(SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `%s` WHERE `auction_id` = '%d'", auction_db, auction_id))
 		Sql_ShowDebug(sql_handle);
 
 	if(auction->auction_end_timer != INVALID_TIMER)
@@ -196,38 +196,38 @@ void inter_auctions_fromsql(void)
 		StrBuf->Printf(&buf, ",`card%d`", i);
 	StrBuf->Printf(&buf, " FROM `%s` ORDER BY `auction_id` DESC", auction_db);
 
-	if(SQL_ERROR == SQL->Query(sql_handle, StrBuf->Value(&buf)))
+	if(SQL_ERROR == Sql_Query(sql_handle, StrBuf->Value(&buf)))
 		Sql_ShowDebug(sql_handle);
 
 	StrBuf->Destroy(&buf);
 
-	while(SQL_SUCCESS == SQL->NextRow(sql_handle)) {
+	while(SQL_SUCCESS == Sql_NextRow(sql_handle)) {
 		CREATE(auction, struct auction_data, 1);
-		SQL->GetData(sql_handle, 0, &data, NULL); auction->auction_id = atoi(data);
-		SQL->GetData(sql_handle, 1, &data, NULL); auction->seller_id = atoi(data);
-		SQL->GetData(sql_handle, 2, &data, NULL); safestrncpy(auction->seller_name, data, NAME_LENGTH);
-		SQL->GetData(sql_handle, 3, &data, NULL); auction->buyer_id = atoi(data);
-		SQL->GetData(sql_handle, 4, &data, NULL); safestrncpy(auction->buyer_name, data, NAME_LENGTH);
-		SQL->GetData(sql_handle, 5, &data, NULL); auction->price = atoi(data);
-		SQL->GetData(sql_handle, 6, &data, NULL); auction->buynow = atoi(data);
-		SQL->GetData(sql_handle, 7, &data, NULL); auction->hours = atoi(data);
-		SQL->GetData(sql_handle, 8, &data, NULL); auction->timestamp = atoi(data);
+		Sql_GetData(sql_handle, 0, &data, NULL); auction->auction_id = atoi(data);
+		Sql_GetData(sql_handle, 1, &data, NULL); auction->seller_id = atoi(data);
+		Sql_GetData(sql_handle, 2, &data, NULL); safestrncpy(auction->seller_name, data, NAME_LENGTH);
+		Sql_GetData(sql_handle, 3, &data, NULL); auction->buyer_id = atoi(data);
+		Sql_GetData(sql_handle, 4, &data, NULL); safestrncpy(auction->buyer_name, data, NAME_LENGTH);
+		Sql_GetData(sql_handle, 5, &data, NULL); auction->price = atoi(data);
+		Sql_GetData(sql_handle, 6, &data, NULL); auction->buynow = atoi(data);
+		Sql_GetData(sql_handle, 7, &data, NULL); auction->hours = atoi(data);
+		Sql_GetData(sql_handle, 8, &data, NULL); auction->timestamp = atoi(data);
 
 		item = &auction->item;
-		SQL->GetData(sql_handle, 9, &data, NULL); item->nameid = atoi(data);
-		SQL->GetData(sql_handle, 10, &data, NULL); safestrncpy(auction->item_name, data, ITEM_NAME_LENGTH);
-		SQL->GetData(sql_handle, 11, &data, NULL); auction->type = atoi(data);
+		Sql_GetData(sql_handle, 9, &data, NULL); item->nameid = atoi(data);
+		Sql_GetData(sql_handle, 10, &data, NULL); safestrncpy(auction->item_name, data, ITEM_NAME_LENGTH);
+		Sql_GetData(sql_handle, 11, &data, NULL); auction->type = atoi(data);
 
-		SQL->GetData(sql_handle, 12, &data, NULL); item->refine = atoi(data);
-		SQL->GetData(sql_handle, 13, &data, NULL); item->attribute = atoi(data);
-		SQL->GetData(sql_handle, 14, &data, NULL); item->unique_id = strtoull(data, NULL, 10);
+		Sql_GetData(sql_handle, 12, &data, NULL); item->refine = atoi(data);
+		Sql_GetData(sql_handle, 13, &data, NULL); item->attribute = atoi(data);
+		Sql_GetData(sql_handle, 14, &data, NULL); item->unique_id = strtoull(data, NULL, 10);
 
 		item->identify = 1;
 		item->amount = 1;
 		item->expire_time = 0;
 
 		for(i = 0; i < MAX_SLOTS; i++) {
-			SQL->GetData(sql_handle, 15 + i, &data, NULL);
+			Sql_GetData(sql_handle, 15 + i, &data, NULL);
 			item->card[i] = atoi(data);
 		}
 
@@ -240,7 +240,7 @@ void inter_auctions_fromsql(void)
 		idb_put(auction_db_, auction->auction_id, auction);
 	}
 
-	SQL->FreeResult(sql_handle);
+	Sql_FreeResult(sql_handle);
 }
 
 static void mapif_Auction_sendlist(int fd, int char_id, short count, short pages, unsigned char *buf)
