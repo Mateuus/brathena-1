@@ -5761,14 +5761,14 @@ void clif_pvpset(struct map_session_data *sd,int pvprank,int pvpnum,int type)
 /*==========================================
  *
  *------------------------------------------*/
-void clif_map_property_mapall(int map, enum map_property property)
+void clif_map_property_mapall(int mapid, enum map_property property)
 {
 	struct block_list bl;
 	unsigned char buf[16];
 
 	bl.id = 0;
 	bl.type = BL_NUL;
-	bl.m = map;
+	bl.m = mapid;
 	WBUFW(buf,0)=0x199;
 	WBUFW(buf,2)=property;
 	clif_send(buf,packet_len(0x199),&bl,ALL_SAMEMAP);
@@ -6249,7 +6249,7 @@ void clif_closevendingboard(struct block_list *bl, int fd)
 /// Sends a list of items in a shop.
 /// R 0133 <packet len>.W <owner id>.L { <price>.L <amount>.W <index>.W <type>.B <name id>.W <identified>.B <damaged>.B <refine>.B <card1>.W <card2>.W <card3>.W <card4>.W }* (ZC_PC_PURCHASE_ITEMLIST_FROMMC)
 /// R 0800 <packet len>.W <owner id>.L <unique id>.L { <price>.L <amount>.W <index>.W <type>.B <name id>.W <identified>.B <damaged>.B <refine>.B <card1>.W <card2>.W <card3>.W <card4>.W }* (ZC_PC_PURCHASE_ITEMLIST_FROMMC2)
-void clif_vendinglist(struct map_session_data *sd, unsigned int id, struct s_vending *vending)
+void clif_vendinglist(struct map_session_data *sd, unsigned int id, struct s_vending *vending_items)
 {
 	int i,fd;
 	int count;
@@ -6263,7 +6263,7 @@ void clif_vendinglist(struct map_session_data *sd, unsigned int id, struct s_ven
 #endif
 
 	nullpo_retv(sd);
-	nullpo_retv(vending);
+	nullpo_retv(vending_items);
 	nullpo_retv(vsd=map_id2sd(id));
 
 	fd = sd->fd;
@@ -6278,11 +6278,11 @@ void clif_vendinglist(struct map_session_data *sd, unsigned int id, struct s_ven
 #endif
 
 	for(i = 0; i < count; i++) {
-		int index = vending[i].index;
+		int index = vending_items[i].index;
 		struct item_data *data = itemdb_search(vsd->status.cart[index].nameid);
-		WFIFOL(fd,offset+ 0+i*22) = vending[i].value;
-		WFIFOW(fd,offset+ 4+i*22) = vending[i].amount;
-		WFIFOW(fd,offset+ 6+i*22) = vending[i].index + 2;
+		WFIFOL(fd,offset+ 0+i*22) = vending_items[i].value;
+		WFIFOW(fd,offset+ 4+i*22) = vending_items[i].amount;
+		WFIFOW(fd,offset+ 6+i*22) = vending_items[i].index + 2;
 		WFIFOB(fd,offset+ 8+i*22) = itemtype(data->type);
 		WFIFOW(fd,offset+ 9+i*22) = (data->view_id > 0) ? data->view_id : vsd->status.cart[index].nameid;
 		WFIFOB(fd,offset+11+i*22) = vsd->status.cart[index].identify;
@@ -6322,7 +6322,7 @@ void clif_buyvending(struct map_session_data *sd, int index, int amount, int fai
 
 /// Shop creation success (ZC_PC_PURCHASE_MYITEMLIST).
 /// 0136 <packet len>.W <owner id>.L { <price>.L <index>.W <amount>.W <type>.B <name id>.W <identified>.B <damaged>.B <refine>.B <card1>.W <card2>.W <card3>.W <card4>.W }*
-void clif_openvending(struct map_session_data *sd, int id, struct s_vending *vending)
+void clif_openvending(struct map_session_data *sd, int id, struct s_vending *vending_items)
 {
 	int i,fd;
 	int count;
@@ -6337,11 +6337,11 @@ void clif_openvending(struct map_session_data *sd, int id, struct s_vending *ven
 	WFIFOW(fd,2) = 8+count*22;
 	WFIFOL(fd,4) = id;
 	for(i = 0; i < count; i++) {
-		int index = vending[i].index;
+		int index = vending_items[i].index;
 		struct item_data *data = itemdb_search(sd->status.cart[index].nameid);
-		WFIFOL(fd, 8+i*22) = vending[i].value;
-		WFIFOW(fd,12+i*22) = vending[i].index + 2;
-		WFIFOW(fd,14+i*22) = vending[i].amount;
+		WFIFOL(fd, 8+i*22) = vending_items[i].value;
+		WFIFOW(fd,12+i*22) = vending_items[i].index + 2;
+		WFIFOW(fd,14+i*22) = vending_items[i].amount;
 		WFIFOB(fd,16+i*22) = itemtype(data->type);
 		WFIFOW(fd,17+i*22) = (data->view_id > 0) ? data->view_id : sd->status.cart[index].nameid;
 		WFIFOB(fd,19+i*22) = sd->status.cart[index].identify;
@@ -16461,7 +16461,7 @@ void clif_party_show_picker(struct map_session_data *sd, struct item *item_data)
 /// exp type:
 ///     0 = normal exp gain/loss
 ///     1 = quest exp gain/loss
-void clif_displayexp(struct map_session_data *sd, unsigned int exp, char type, bool quest)
+void clif_displayexp(struct map_session_data *sd, unsigned int exp, char type, bool is_quest)
 {
 	int fd;
 
@@ -16474,7 +16474,7 @@ void clif_displayexp(struct map_session_data *sd, unsigned int exp, char type, b
 	WFIFOL(fd,2) = sd->bl.id;
 	WFIFOL(fd,6) = exp;
 	WFIFOW(fd,10) = type;
-	WFIFOW(fd,12) = quest?1:0;// Normal exp is shown in yellow, quest exp is shown in purple.
+	WFIFOW(fd,12) = is_quest?1:0;// Normal exp is shown in yellow, quest exp is shown in purple.
 	WFIFOSET(fd,packet_len(0x7f6));
 }
 

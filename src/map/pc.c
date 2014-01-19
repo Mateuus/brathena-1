@@ -1988,7 +1988,7 @@ static int pc_bonus_item_drop(struct s_add_drop *drop, const short max, short id
 	return 1;
 }
 
-int pc_addautobonus(struct s_autobonus *bonus,char max,const char *script,short rate,unsigned int dur,short flag,const char *other_script,unsigned short pos,bool onskill)
+int pc_addautobonus(struct s_autobonus *bonus,char max,const char *bonus_script,short rate,unsigned int dur,short flag,const char *other_script,unsigned short pos,bool onskill)
 {
 	int i;
 
@@ -2016,7 +2016,7 @@ int pc_addautobonus(struct s_autobonus *bonus,char max,const char *script,short 
 	bonus[i].active = INVALID_TIMER;
 	bonus[i].atk_type = flag;
 	bonus[i].pos = pos;
-	bonus[i].bonus_script = aStrdup(script);
+	bonus[i].bonus_script = aStrdup(bonus_script);
 	bonus[i].other_script = other_script?aStrdup(other_script):NULL;
 	return 1;
 }
@@ -5982,7 +5982,7 @@ static void pc_calcexp(struct map_session_data *sd, unsigned int *base_exp, unsi
 /*==========================================
  * Give x exp at sd player and calculate remaining exp for next lvl
  *------------------------------------------*/
-int pc_gainexp(struct map_session_data *sd, struct block_list *src, unsigned int base_exp,unsigned int job_exp,bool quest)
+int pc_gainexp(struct map_session_data *sd, struct block_list *src, unsigned int base_exp,unsigned int job_exp,bool is_quest)
 {
 	float nextbp=0, nextjp=0;
 	unsigned int nextb=0, nextj=0;
@@ -6050,9 +6050,9 @@ int pc_gainexp(struct map_session_data *sd, struct block_list *src, unsigned int
 
 #if PACKETVER >= 20091027
 	if(base_exp)
-		clif_displayexp(sd, base_exp, SP_BASEEXP, quest);
+		clif_displayexp(sd, base_exp, SP_BASEEXP, is_quest);
 	if(job_exp)
-		clif_displayexp(sd, job_exp,  SP_JOBEXP, quest);
+		clif_displayexp(sd, job_exp,  SP_JOBEXP, is_quest);
 #endif
 
 	if(sd->state.showexp) {
@@ -7135,8 +7135,8 @@ int pc_dead(struct map_session_data *sd,struct block_list *src)
 		add_timer(tick+1, pc_respawn_timer, sd->bl.id, 0);
 		return 1|8;
 	} else if(sd->bg_id) {
-		struct battleground_data *bg = bg_team_search(sd->bg_id);
-		if(bg && bg->mapindex > 0) {
+		struct battleground_data *bgd = bg_team_search(sd->bg_id);
+		if(bgd && bgd->mapindex > 0) {
 			// Respawn by BG
 			add_timer(tick+1000, pc_respawn_timer, sd->bl.id, 0);
 			return 1|8;

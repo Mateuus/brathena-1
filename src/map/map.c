@@ -3263,7 +3263,7 @@ int parse_console(const char *buf)
 {
 	char type[64];
 	char command[64];
-	char map[64];
+	char map_name[64];
 	int16 x = 0;
 	int16 y = 0;
 	int16 m;
@@ -3273,14 +3273,14 @@ int parse_console(const char *buf)
 	memset(&sd, 0, sizeof(struct map_session_data));
 	strcpy(sd.status.name, "console");
 
-	if((n = sscanf(buf, "%63[^:]:%63[^:]:%63s %hd %hd[^\n]", type, command, map, &x, &y)) < 5) {
+	if((n = sscanf(buf, "%63[^:]:%63[^:]:%63s %hd %hd[^\n]", type, command, map_name, &x, &y)) < 5) {
 		if((n = sscanf(buf, "%63[^:]:%63[^\n]", type, command)) < 2) {
 			n = sscanf(buf, "%63[^\n]", type);
 		}
 	}
 
 	if(n == 5) {
-		m = map_mapname2mapid(map);
+		m = map_mapname2mapid(map_name);
 		if(m < 0) {
 			ShowWarning("Console: Mapa desconhecido.\n");
 			return 0;
@@ -3292,14 +3292,14 @@ int parse_console(const char *buf)
 		if(y > 0)
 			sd.bl.y = y;
 	} else {
-		map[0] = '\0';
+		map_name[0] = '\0';
 		if(n < 2)
 			command[0] = '\0';
 		if(n < 1)
 			type[0] = '\0';
 	}
 
-	ShowNotice("Type of command: '%s' || Command: '%s' || Map: '%s' Coords: %d %d\n", type, command, map, x, y);
+	ShowNotice("Type of command: '%s' || Command: '%s' || Map: '%s' Coords: %d %d\n", type, command, map_name, x, y);
 
 	if(n == 5 && strcmpi("admin",type) == 0) {
 		if(!is_atcommand(sd.fd, &sd, command, 0))

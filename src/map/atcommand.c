@@ -3347,7 +3347,7 @@ ACMD_FUNC(guild)
 
 	memset(guild_name, '\0', sizeof(guild_name));
 
-	if(!message || !*message || sscanf(message, "%23[^\n]", guild) < 1) {
+	if(!message || !*message || sscanf(message, "%23[^\n]", guild_name) < 1) {
 		clif_displaymessage(fd, msg_txt(1030)); // Please enter a guild name (usage: @guild <guild_name>).
 		return -1;
 	}
