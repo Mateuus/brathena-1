@@ -4007,8 +4007,8 @@ bool map_zone_mf_cache(int m, char *flag, char *params) {
 			else if(map[m].flag.pvp_nightmaredrop)
 				map_zone_mf_cache_add(m,"pvp_nightmaredrop");
 		}
-		/* not yet fully supported */
-		/*char drop_arg1[16], drop_arg2[16];
+#if 0 /* not yet fully supported */
+		char drop_arg1[16], drop_arg2[16];
 		int drop_per = 0;
 		if (sscanf(w4, "%[^,],%[^,],%d", drop_arg1, drop_arg2, &drop_per) == 3) {
 			int drop_id = 0, drop_type = 0;
@@ -4037,7 +4037,7 @@ bool map_zone_mf_cache(int m, char *flag, char *params) {
 			}
 		} else if (!state) //Disable
 			map[m].flag.pvp_nightmaredrop = 0;
-		 */
+#endif // 0
 	} else if (!strcmpi(flag,"pvp_nocalcrank")) {
 		if( state && map[m].flag.pvp_nocalcrank )
 			;/* nothing to do */
@@ -4704,17 +4704,17 @@ enum bl_type map_zone_bl_type(const char *entry, enum map_zone_skill_subtype *su
 void read_map_zone_db(void) {
 	config_t map_zone_db;
 	config_setting_t *zones = NULL;
-	const char *config_filename = "db/map_zone.conf"; // FIXME hardcoded name
-
+#if VERSION == 1
+	const char *config_filename = "db/map_zone_re.conf"; // FIXME hardcoded name
+#elif VERSION == 0
+	const char *config_filename = "db/map_zone_pre.conf"; // FIXME hardcoded name
+#else
+	const char *config_filename = "db/map_zone_ot.conf"; // FIXME hardcoded name
+#endif
 	if (conf_read_file(&map_zone_db, config_filename))
 		return;
-#if VERSION == 1
-	zones = config_lookup(&map_zone_db, "zonesre");
-#elif VERSION == 0
-	zones = config_lookup(&map_zone_db, "zonespre");
-#else
-	zones = config_lookup(&map_zone_db, "zonesot");
-#endif
+
+	zones = config_lookup(&map_zone_db, "zones");
 
 	if (zones != NULL) {
 		struct map_zone_data *zone;
@@ -5252,8 +5252,8 @@ void do_final(void)
 	script->final();
 	do_final_itemdb();
 	instance->final();
-	do_final_storage();
-	do_final_guild();
+	gstorage->final();
+	guild->final();
 	do_final_party();
 	do_final_pc();
 	do_final_pet();
@@ -5482,11 +5482,14 @@ int do_init(int argc, char *argv[])
 	battleground_defaults();
 	clif_defaults();
 	instance_defaults();
+	guild_defaults();
+	gstorage_defaults();
 	homunculus_defaults();
 	itemdb_defaults();
 	pc_groups_defaults();
 	script_defaults();
 	quest_defaults();
+	storage_defaults();
 	mapindex_defaults();
 	mapreg_defaults();
 	npc_defaults();
@@ -5584,8 +5587,8 @@ int do_init(int argc, char *argv[])
 	do_init_pc();
 	do_init_status();
 	do_init_party();
-	do_init_guild();
-	do_init_storage();
+	guild->init();
+	gstorage->init();
 	do_init_pet();
 	homun->init();
 	do_init_mercenary();

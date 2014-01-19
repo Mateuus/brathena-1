@@ -1352,7 +1352,7 @@ int pc_reg_received(struct map_session_data *sd)
 	if(sd->status.party_id)
 		party_member_joined(sd);
 	if(sd->status.guild_id)
-		guild_member_joined(sd);
+		guild->member_joined(sd);
 
 	// pet
 	if(sd->status.pet_id > 0)
@@ -4693,17 +4693,17 @@ void pc_bound_clear(struct map_session_data *sd, enum e_item_bound_type type) {
 			ShowError("Helllo! You reached pc_bound_clear for IBT_ACCOUNT, unfortunately no scenario was expected for this!\n");
 			break;
 		case IBT_GUILD: {
-				struct guild_storage *gstor = guild2storage2(sd->status.guild_id);
+				struct guild_storage *gstor = gstorage->id2storage2(sd->status.guild_id);
 
 				for(i = 0; i < MAX_INVENTORY; i++){
 					if(sd->status.inventory[i].bound == type) {
 						if(gstor)
-							guild_storage_additem(sd,gstor,&sd->status.inventory[i],sd->status.inventory[i].amount);
+							gstorage->additem(sd, gstor, &sd->status.inventory[i], sd->status.inventory[i].amount);
 						pc_delitem(sd,i,sd->status.inventory[i].amount,0,1,gstor?LOG_TYPE_GSTORAGE:LOG_TYPE_OTHER);
 					}
 				}
 				if(gstor)
-					storage_storageclose(sd);
+					storage->close(sd);
 			}
 			break;
 	}
@@ -4972,7 +4972,7 @@ int pc_setpos(struct map_session_data *sd, unsigned short map_index, int x, int 
 		if(battle_config.clear_unit_onwarp&BL_PC)
 			skill_clear_unitgroup(&sd->bl);
 		party_send_dot_remove(sd); //minimap dot fix [Kevin]
-		guild_send_dot_remove(sd);
+		guild->send_dot_remove(sd);
 		bg_send_dot_remove(sd);
 		if(sd->regen.state.gc)
 			sd->regen.state.gc = 0;
@@ -5042,7 +5042,7 @@ int pc_setpos(struct map_session_data *sd, unsigned short map_index, int x, int 
 	sd->bl.y = sd->ud.to_y = y;
 
 	if(sd->status.guild_id > 0 && map[m].flag.gvg_castle) { // Increased guild castle regen [Valaris]
-		struct guild_castle *gc = guild_mapindex2gc(sd->mapindex);
+		struct guild_castle *gc = guild->mapindex2gc(sd->mapindex);
 		if(gc && gc->guild_id == sd->status.guild_id)
 			sd->regen.state.gc = 1;
 	}
@@ -5166,7 +5166,7 @@ int pc_checkskill(struct map_session_data *sd,uint16 skill_id)
 		struct guild *g;
 
 		if(sd->status.guild_id>0 && (g=sd->guild)!=NULL)
-			return guild_checkskill(g,skill_id);
+			return guild->checkskill(g, skill_id);
 		return 0;
 	} else if(!(index = skill_get_index(skill_id)) || index >= ARRAYLENGTH(sd->status.skill) ) {
 		ShowError("pc_checkskill: Invalid skill id %d (char_id=%d).\n", skill_id, sd->status.char_id);
@@ -5192,7 +5192,7 @@ int pc_checkskill2(struct map_session_data *sd,uint16 index)
 		struct guild *g;
 		
 		if( sd->status.guild_id>0 && (g=sd->guild)!=NULL)
-			return guild_checkskill(g,skill_db[index].nameid);
+			return guild->checkskill(g, skill_db[index].nameid);
 		
 		return 0;
 	}
@@ -5998,7 +5998,7 @@ int pc_gainexp(struct map_session_data *sd, struct block_list *src, unsigned int
 		return 0;
 
 	if(sd->status.guild_id>0)
-		base_exp-=guild_payexp(sd,base_exp);
+		base_exp -= guild->payexp(sd, base_exp);
 
 	if(src) pc_calcexp(sd, &base_exp, &job_exp, src);
 
@@ -6296,7 +6296,7 @@ int pc_skillup(struct map_session_data *sd,uint16 skill_id)
 	nullpo_ret(sd);
 
 	if(skill_id >= GD_SKILLBASE && skill_id < GD_SKILLBASE+MAX_GUILDSKILL) {
-		guild_skillup(sd, skill_id);
+		guild->skillup(sd, skill_id);
 		return 0;
 	}
 
@@ -7160,10 +7160,10 @@ void pc_revive(struct map_session_data *sd,unsigned int hp, unsigned int sp)
 		pc_setinvincibletimer(sd, battle_config.pc_invincible_time);
 
 	if(sd->state.gmaster_flag) {
-		guild_guildaura_refresh(sd,GD_LEADERSHIP,guild_checkskill(sd->guild,GD_LEADERSHIP));
-		guild_guildaura_refresh(sd,GD_GLORYWOUNDS,guild_checkskill(sd->guild,GD_GLORYWOUNDS));
-		guild_guildaura_refresh(sd,GD_SOULCOLD,guild_checkskill(sd->guild,GD_SOULCOLD));
-		guild_guildaura_refresh(sd,GD_HAWKEYES,guild_checkskill(sd->guild,GD_HAWKEYES));
+		guild->aura_refresh(sd, GD_LEADERSHIP, guild->checkskill(sd->guild, GD_LEADERSHIP));
+		guild->aura_refresh(sd, GD_GLORYWOUNDS, guild->checkskill(sd->guild, GD_GLORYWOUNDS));
+		guild->aura_refresh(sd, GD_SOULCOLD, guild->checkskill(sd->guild, GD_SOULCOLD));
+		guild->aura_refresh(sd, GD_HAWKEYES, guild->checkskill(sd->guild, GD_HAWKEYES));
 	}
 }
 // script? ?A
@@ -9025,20 +9025,20 @@ int pc_checkitem(struct map_session_data *sd)
 			id = sd->status.storage.items[i].nameid;
 			if(id && !itemdb_available(id)) {
 				ShowWarning("Removed invalid/disabled item id %d from storage (amount=%d, char_id=%d).\n", id, sd->status.storage.items[i].amount, sd->status.char_id);
-				storage_delitem(sd, i, sd->status.storage.items[i].amount);
-				storage_storageclose(sd); // force closing
+				storage->delitem(sd, i, sd->status.storage.items[i].amount);
+				storage->close(sd); // force closing
 			}
 		}
 
 		if(sd->guild) {
-			struct guild_storage *guild_storage = guild2storage2(sd->guild->guild_id);
+			struct guild_storage *guild_storage = gstorage->id2storage2(sd->guild->guild_id);
 			if(guild_storage) {
 				for(i = 0; i < MAX_GUILD_STORAGE; i++) {
 					id = guild_storage->items[i].nameid;
 					if(id && !itemdb_available(id)) {
 						ShowWarning("Removed invalid/disabled item id %d from guild storage (amount=%d, char_id=%d, guild_id=%d).\n", id, guild_storage->items[i].amount, sd->status.char_id, sd->guild->guild_id);
-						guild_storage_delitem(sd, guild_storage, i, guild_storage->items[i].amount);
-						storage_guild_storageclose(sd); // force closing
+						gstorage->delitem(sd, guild_storage, i, guild_storage->items[i].amount);
+						gstorage->close(sd); // force closing
 					}
 				}
 			}
@@ -10624,7 +10624,7 @@ void pc_autotrade_prepare(struct map_session_data *sd) {
  **/
 void pc_autotrade_populate(struct map_session_data *sd) {
 	struct autotrade_vending *data;
-	int i, j, cursor = 0;
+	int i, j, k, cursor = 0;
 
 	if(!(data = idb_get(at_db,sd->status.char_id)))
 		return;
@@ -10633,7 +10633,16 @@ void pc_autotrade_populate(struct map_session_data *sd) {
 		if( !data->vending[i].amount )
 			continue;
 
-		ARR_FIND(0, MAX_CART, j, !memcmp((char*)(&data->list[i]) + sizeof(data->list[0].id), (char*)(&sd->status.cart[j]) + sizeof(data->list[0].id), sizeof(struct item) - sizeof(data->list[0].id)));
+		for(j = 0; j < MAX_CART; j++) {
+			if(!memcmp((char*)(&data->list[i]) + sizeof(data->list[0].id), (char*)(&sd->status.cart[j]) + sizeof(data->list[0].id), sizeof(struct item) - sizeof(data->list[0].id))) {
+				if(cursor) {
+					ARR_FIND(0, cursor, k, sd->vending[k].index == j);
+					if( k != cursor )
+						continue;
+				}
+				break;
+			}
+		}
 
 		if(j != MAX_CART) {
 			sd->vending[cursor].index = j;

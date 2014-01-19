@@ -2106,8 +2106,18 @@ void script_set_constant(const char *name, int value, bool isparameter)
 void script_set_constant2(const char *name, int value, bool isparameter) {
 	int n = script->add_str(name);
 
-	if((script->str_data[n].type == C_NAME || script->str_data[n].type == C_PARAM ) && ( script->str_data[n].val != 0 || script->str_data[n].backpatch != -1)) { // existing parameter or constant
-		ShowNotice("Conflicting var name '%s', prioritising the script var\n",name);
+	if(script->str_data[n].type == C_PARAM) {
+		ShowError("script_set_constant2: Attempted to overwrite existing parameter '%s' with a constant (value=%d).\n", name, value);
+		return;
+	}
+
+	if(script->str_data[n].type == C_NAME && script->str_data[n].val) {
+		ShowWarning("script_set_constant2: Attempted to overwrite existing variable '%s' with a constant (value=%d).\n", name, value);
+		return;
+	}
+
+	if(script->str_data[n].type == C_INT && value && value != script->str_data[n].val ) { // existing constant
+		ShowWarning("script_set_constant2: Attempted to overwrite existing constant '%s' (old value=%d, new value=%d).\n", name, script->str_data[n].val, value);
 		return;
 	}
 
@@ -2121,22 +2131,6 @@ void script_set_constant2(const char *name, int value, bool isparameter) {
 	script->str_data[n].val  = value;
 
 }
-/* same as constant2 except it will override if necessary, used to clear conflicts during reload  */
-void script_set_constant_force(const char *name, int value, bool isparameter) {
-	int n = script->add_str(name);
-
-	if(script->str_data[n].type == C_PARAM)
-		return;/* the one type we don't mess with, reload doesn't affect it. */
-		
-	if(script->str_data[n].type != C_NOP) {
-		script->str_data[n].type = C_NOP;
-		script->str_data[n].val = 0;
-		script->str_data[n].func = NULL;
-		script->str_data[n].backpatch = -1;
-		script->str_data[n].label = -1;
-	}
-}
-
 /*==========================================
  * Leitura estruturada const_db.
  *------------------------------------------*/
@@ -2649,7 +2643,7 @@ void script_array_ensure_zero(struct script_state *st, struct map_session_data *
 	struct script_array *sa = NULL;
 	bool insert = false;
 
-	if(sd) /* when sd comes, st isn't available */
+	if(sd && !st) /* when sd comes, st isn't available */
 		insert = true;
 	else {
 		if(is_string_variable(name)) {
@@ -3622,7 +3616,7 @@ void script_check_buildin_argtype(struct script_state *st, int func)
 					}
 					break;
 				case 'r':
-					if(!data_isreference(data)) {
+					if(!data_isreference(data) || reference_toconstant(data)) {
 						// variables
 						ShowWarning("Unexpected type for argument %d. Expected variable, got %s.\n", idx-1, script->op2name(data->type));
 						script->reportdata(data);
@@ -4609,7 +4603,7 @@ int script_reload(void) {
 
 	mapreg->reload();
 
-	itemdb->force_name_constants();
+	itemdb->name_constants();
 
 	return 0;
 }
@@ -5524,7 +5518,7 @@ BUILDIN_FUNC(warpguild)
 	int y           = script_getnum(st,4);
 	int gid         = script_getnum(st,5);
 
-	g = guild_search(gid);
+	g = guild->search(gid);
 	if(g == NULL)
 		return 0;
 
@@ -5745,7 +5739,7 @@ BUILDIN_FUNC(setr)
 
 	data = script_getdata(st,2);
 	//datavalue = script_getdata(st,3);
-	if(!data_isreference(data)) {
+	if(!data_isreference(data) || reference_toconstant(data)) {
 		ShowError("script:set: not a variable\n");
 		script->reportdata(script_getdata(st,2));
 		st->state = END;
@@ -5831,7 +5825,7 @@ BUILDIN_FUNC(setarray)
 	TBL_PC *sd = NULL;
 
 	data = script_getdata(st, 2);
-	if(!data_isreference(data)) {
+	if(!data_isreference(data) || reference_toconstant(data)) {
 		ShowError("script:setarray: not a variable\n");
 		script->reportdata(data);
 		st->state = END;
@@ -7331,7 +7325,7 @@ BUILDIN_FUNC(getguildname)
 
 	guild_id = script_getnum(st,2);
 
-	if((g = guild_search(guild_id)) != NULL) {
+	if ((g = guild->search(guild_id)) != NULL) {
 		script_pushstrcopy(st,g->name);
 	} else {
 		script_pushconststr(st,"null");
@@ -7350,7 +7344,7 @@ BUILDIN_FUNC(getguildmaster)
 
 	guild_id = script_getnum(st,2);
 
-	if((g = guild_search(guild_id)) != NULL) {
+	if((g = guild->search(guild_id)) != NULL) {
 		script_pushstrcopy(st,g->member[0].name);
 	} else {
 		script_pushconststr(st,"null");
@@ -7365,7 +7359,7 @@ BUILDIN_FUNC(getguildmasterid)
 
 	guild_id = script_getnum(st,2);
 
-	if((g = guild_search(guild_id)) != NULL) {
+	if((g = guild->search(guild_id)) != NULL) {
 		script_pushint(st,g->member[0].char_id);
 	} else {
 		script_pushint(st,0);
@@ -8233,7 +8227,7 @@ BUILDIN_FUNC(guildskill)
 	id = (script_isstringtype(st,2) ? skill_name2id(script_getstr(st,2)) : script_getnum(st,2));
 	level = script_getnum(st,3);
 	for(i=0; i < level; i++)
-		guild_skillup(sd, id);
+		guild->skillup(sd, id);
 
 	return 0;
 }
@@ -8269,11 +8263,11 @@ BUILDIN_FUNC(getgdskilllv)
 
 	guild_id = script_getnum(st,2);
 	skill_id = (script_isstringtype(st,3) ? skill_name2id(script_getstr(st,3)) : script_getnum(st,3));
-	g = guild_search(guild_id);
+	g = guild->search(guild_id);
 	if(g == NULL)
 		script_pushint(st, -1);
 	else
-		script_pushint(st, guild_checkskill(g,skill_id));
+		script_pushint(st, guild->checkskill(g, skill_id));
 
 	return 0;
 }
@@ -8762,7 +8756,7 @@ BUILDIN_FUNC(openstorage)
 	if(sd == NULL)
 		return 0;
 
-	storage_storageopen(sd);
+	storage->open(sd);
 	return 0;
 }
 
@@ -8775,7 +8769,7 @@ BUILDIN_FUNC(guildopenstorage)
 	if(sd == NULL)
 		return 0;
 
-	ret = storage_guild_storageopen(sd);
+	ret = gstorage->open(sd);
 	script_pushint(st,ret);
 	return 0;
 }
@@ -8913,7 +8907,7 @@ BUILDIN_FUNC(guildgetexp)
 	if(exp < 0)
 		return 0;
 	if(sd && sd->status.guild_id > 0)
-		guild_getexp(sd, exp);
+		guild->getexp(sd, exp);
 
 	return 0;
 }
@@ -8934,7 +8928,7 @@ BUILDIN_FUNC(guildchangegm)
 	if(!sd)
 		script_pushint(st,0);
 	else
-		script_pushint(st,guild_gm_change(guild_id, sd));
+		script_pushint(st, guild->gm_change(guild_id, sd));
 
 	return 0;
 }
@@ -9789,7 +9783,7 @@ BUILDIN_FUNC(getmapguildusers)
 		script_pushint(st,-1);
 		return 0;
 	}
-	g = guild_search(gid);
+	g = guild->search(gid);
 
 	if(g) {
 		for(i = 0; i < g->max_member; i++) {
@@ -11253,7 +11247,7 @@ BUILDIN_FUNC(agitstart)
 {
 	if(agit_flag==1) return 0;      // Agit already Start.
 	agit_flag=1;
-	guild_agit_start();
+	guild->agit_start();
 	return 0;
 }
 
@@ -11261,7 +11255,7 @@ BUILDIN_FUNC(agitend)
 {
 	if(agit_flag==0) return 0;      // Agit already End.
 	agit_flag=0;
-	guild_agit_end();
+	guild->agit_end();
 	return 0;
 }
 
@@ -11269,7 +11263,7 @@ BUILDIN_FUNC(agitstart2)
 {
 	if(agit2_flag==1) return 0;      // Agit2 already Start.
 	agit2_flag=1;
-	guild_agit2_start();
+	guild->agit2_start();
 	return 0;
 }
 
@@ -11277,7 +11271,7 @@ BUILDIN_FUNC(agitend2)
 {
 	if(agit2_flag==0) return 0;      // Agit2 already End.
 	agit2_flag=0;
-	guild_agit2_end();
+	guild->agit2_end();
 	return 0;
 }
 
@@ -11320,9 +11314,9 @@ BUILDIN_FUNC(flagemblem)
 		clif_guild_emblem_area(&nd->bl);
 		/* guild flag caching */
 		if(g_id)   /* adding a id */
-			guild_flag_add(nd);
+			guild->flag_add(nd);
 		else if(changed)   /* removing a flag */
-			guild_flag_remove(nd);
+			guild->flag_remove(nd);
 	}
 	return 0;
 }
@@ -11330,7 +11324,7 @@ BUILDIN_FUNC(flagemblem)
 BUILDIN_FUNC(getcastlename)
 {
 	const char *mapname = mapindex->getmapname(script_getstr(st, 2), NULL);
-	struct guild_castle *gc = guild_mapname2gc(mapname);
+	struct guild_castle *gc = guild->mapname2gc(mapname);
 	const char *name = (gc) ? gc->castle_name : "";
 	script_pushstrcopy(st,name);
 	return 0;
@@ -11340,7 +11334,7 @@ BUILDIN_FUNC(getcastledata)
 {
 	const char *mapname = mapindex->getmapname(script_getstr(st, 2), NULL);
 	int index = script_getnum(st,3);
-	struct guild_castle *gc = guild_mapname2gc(mapname);
+	struct guild_castle *gc = guild->mapname2gc(mapname);
 
 	if(gc == NULL) {
 		script_pushint(st,0);
@@ -11384,7 +11378,7 @@ BUILDIN_FUNC(setcastledata)
 	const char *mapname = mapindex->getmapname(script_getstr(st, 2), NULL);
 	int index = script_getnum(st,3);
 	int value = script_getnum(st,4);
-	struct guild_castle *gc = guild_mapname2gc(mapname);
+	struct guild_castle *gc = guild->mapname2gc(mapname);
 
 	if(gc == NULL) {
 		ShowWarning("buildin_setcastledata: guild castle for map '%s' not found\n", mapname);
@@ -11396,7 +11390,7 @@ BUILDIN_FUNC(setcastledata)
 		return 1;
 	}
 
-	guild_castledatasave(gc->castle_id, index, value);
+	guild->castledatasave(gc->castle_id, index, value);
 	return 0;
 }
 
@@ -11413,7 +11407,7 @@ BUILDIN_FUNC(requestguildinfo)
 	}
 
 	if(guild_id>0)
-		guild_npc_request_info(guild_id,event);
+		guild->npc_request_info(guild_id, event);
 	return 0;
 }
 
@@ -11616,7 +11610,7 @@ BUILDIN_FUNC(mapwarp)   // Added by RoVeRT
 
 	switch(check_val) {
 		case 1:
-			g = guild_search(check_ID);
+			g = guild->search(check_ID);
 			if(g) {
 				for(i=0; i < g->max_member; i++) {
 					if(g->member[i].sd && g->member[i].sd->bl.m==m) {
@@ -11932,7 +11926,7 @@ BUILDIN_FUNC(guardianinfo)
 	int id = script_getnum(st,3);
 	int type = script_getnum(st,4);
 
-	struct guild_castle *gc = guild_mapname2gc(mapname);
+	struct guild_castle *gc = guild->mapname2gc(mapname);
 	struct mob_data *gd;
 
 	if(gc == NULL || id < 0 || id >= MAX_GUARDIANS) {
@@ -12780,7 +12774,7 @@ BUILDIN_FUNC(atcommand)
 		ret = false;
 	}
 	if (dummy_sd) aFree(dummy_sd);
-	return ret;
+	return 0;
 }
 
 /*==========================================
@@ -12896,7 +12890,7 @@ BUILDIN_FUNC(recovery)
 				g_id = script_getnum(st,3);
 			else
 				g_id = (sd)?sd->status.guild_id:0;
-			g = guild_search(g_id);
+			g = guild->search(g_id);
 			if(g == NULL)
 				return 0;
 			for (i = 0; i < MAX_GUILD; i++) {
@@ -17981,7 +17975,7 @@ BUILDIN_FUNC(recall)
 	struct map_session_data *sd_,*sd = script->rid2sd(st);
 	struct s_mapiterator *iter;
 	struct party_data *p = party_search(sd->status.party_id);
-	struct guild *g = guild_search(sd->status.guild_id);
+	struct guild *g = guild->search(sd->status.guild_id);
 	const char *type = script_getstr(st,2);
 	int c = 0, quant = 0;
 
@@ -19574,7 +19568,6 @@ void script_defaults(void) {
 	script->pop_stack = pop_stack;
 	script->set_constant = script_set_constant;
 	script->set_constant2 = script_set_constant2;
-	script->set_constant_force = script_set_constant_force;
 	script->get_constant = 	script_get_constant;
 	script->label_add = script_label_add;
 	script->run = run_script;

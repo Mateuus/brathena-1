@@ -291,7 +291,7 @@ static void read_config(void) {
 		}
 	}
 
-	ShowStatus("Leitura de '"CL_WHITE"%d"CL_RESET"' grupos em '"CL_WHITE"%s"CL_RESET"'.\n", group_count, config_filename);
+	ShowConf("Leitura de '"CL_WHITE"%d"CL_RESET"' grupos em '"CL_WHITE"%s"CL_RESET"'.\n", group_count, config_filename);
 
 	// All data is loaded now, discard config
 	config_destroy(&pc_group_config);

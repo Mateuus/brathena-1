@@ -1674,7 +1674,7 @@ int itemdb_uid_load()
 {
 
 	char *uid;
-	if(SQL_ERROR == Sql_Query(mmysql_handle, "SELECT `value` FROM `interreg` WHERE `varname`='unique_id'"))
+	if(SQL_ERROR == Sql_Query(mmysql_handle, "SELECT `value` FROM `%s` WHERE `varname`='unique_id'", interreg_db))
 		Sql_ShowDebug(mmysql_handle);
 
 	if(SQL_SUCCESS != Sql_NextRow(mmysql_handle)) {
@@ -1867,16 +1867,6 @@ void itemdb_name_constants(void) {
 
 	dbi_destroy(iter);	
 }
-/* used to clear conflicts during script reload */
-void itemdb_force_name_constants(void) {
-	DBIterator *iter = db_iterator(itemdb->names);
-	struct item_data *data;
-
-	for(data = dbi_first(iter); dbi_exists(iter); data = dbi_next(iter))
-		script->set_constant_force(data->name,data->nameid,0);
-
-	dbi_destroy(iter);
-}
 void do_final_itemdb(void) {
 	int i;
 
@@ -1917,7 +1907,6 @@ void itemdb_defaults(void) {
 	itemdb = &itemdb_s;
 
 	itemdb->name_constants = itemdb_name_constants;
-	itemdb->force_name_constants = itemdb_force_name_constants;
 	/* */
 	itemdb->packages = NULL;
 	itemdb->package_count = 0;

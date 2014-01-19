@@ -118,7 +118,7 @@ const char *msg_txt(int msg_number)
 /*==========================================
  * Read Message Data
  *------------------------------------------*/
-int msg_config_read(const char *cfgName)
+bool msg_config_read(const char *cfgName)
 {
 	int msg_number;
 	char line[1024], w1[1024], w2[1024];
@@ -127,7 +127,7 @@ int msg_config_read(const char *cfgName)
 
 	if((fp = fopen(cfgName, "r")) == NULL) {
 		ShowError(read_message("Source.reuse.reuse_file_not_found"), cfgName);
-		return 1;
+		return false;
 	}
 
 	if((--called) == 0)
@@ -154,7 +154,7 @@ int msg_config_read(const char *cfgName)
 
 	fclose(fp);
 
-	return 0;
+	return true;
 }
 
 /*==========================================
@@ -861,7 +861,7 @@ ACMD_FUNC(storage)
 	if(sd->npc_id || sd->state.vending || sd->state.buyingstore || sd->state.trading || sd->state.storage_flag)
 		return -1;
 
-	if(storage_storageopen(sd) == 1) {
+	if (storage->open(sd) == 1) {
 		//Already open.
 		clif_displaymessage(fd, msg_txt(250));
 		return -1;
@@ -898,7 +898,7 @@ ACMD_FUNC(guildstorage)
 		return -1;
 	}
 
-	storage_guild_storageopen(sd);
+	gstorage->open(sd);
 	clif_displaymessage(fd, msg_txt(920)); // Guild storage opened.
 	return 0;
 }
@@ -3341,11 +3341,11 @@ ACMD_FUNC(party)
  *------------------------------------------*/
 ACMD_FUNC(guild)
 {
-	char guild[NAME_LENGTH];
+	char guild_name[NAME_LENGTH];
 	int prev;
 	nullpo_retr(-1, sd);
 
-	memset(guild, '\0', sizeof(guild));
+	memset(guild_name, '\0', sizeof(guild_name));
 
 	if(!message || !*message || sscanf(message, "%23[^\n]", guild) < 1) {
 		clif_displaymessage(fd, msg_txt(1030)); // Please enter a guild name (usage: @guild <guild_name>).
@@ -3354,7 +3354,7 @@ ACMD_FUNC(guild)
 
 	prev = battle_config.guild_emperium_check;
 	battle_config.guild_emperium_check = 0;
-	guild_create(sd, guild);
+	guild->create(sd, guild_name);
 	battle_config.guild_emperium_check = prev;
 
 	return 0;
@@ -3370,7 +3370,7 @@ ACMD_FUNC(breakguild)
 		if(g) {  // Check if guild was found
 			if(sd->state.gmaster_flag) {  // Check if player is guild master
 				int ret = 0;
-				ret = guild_break(sd, g->name); // Break guild
+				ret = guild->dobreak(sd, g->name); // Break guild
 				if(ret) {  // Check if anything went wrong
 					return 0; // Guild was broken
 				} else {
@@ -3402,7 +3402,7 @@ ACMD_FUNC(agitstart)
 	}
 
 	agit_flag = 1;
-	guild_agit_start();
+	guild->agit_start();
 	clif_displaymessage(fd, msg_txt(72)); // War of Emperium has been initiated.
 
 	return 0;
@@ -3420,7 +3420,7 @@ ACMD_FUNC(agitstart2)
 	}
 
 	agit2_flag = 1;
-	guild_agit2_start();
+	guild->agit2_start();
 	clif_displaymessage(fd, msg_txt(403)); // "War of Emperium SE has been initiated."
 
 	return 0;
@@ -3438,7 +3438,7 @@ ACMD_FUNC(agitend)
 	}
 
 	agit_flag = 0;
-	guild_agit_end();
+	guild->agit_end();
 	clif_displaymessage(fd, msg_txt(74)); // War of Emperium has been ended.
 
 	return 0;
@@ -3456,7 +3456,7 @@ ACMD_FUNC(agitend2)
 	}
 
 	agit2_flag = 0;
-	guild_agit2_end();
+	guild->agit2_end();
 	clif_displaymessage(fd, msg_txt(405)); // "War of Emperium SE has been ended."
 
 	return 0;
@@ -3579,8 +3579,8 @@ ACMD_FUNC(guildrecall)
 		return -1;
 	}
 
-	if((g = guild_searchname(guild_name)) == NULL &&  // name first to avoid error when name begin with a number
-	   (g = guild_search(atoi(message))) == NULL) {
+	if((g = guild->searchname(guild_name)) == NULL &&  // name first to avoid error when name begin with a number
+	   (g = guild->search(atoi(message))) == NULL) {
 		clif_displaymessage(fd, msg_txt(94)); // Incorrect name/ID, or no one from the guild is online.
 		return -1;
 	}
@@ -4111,7 +4111,6 @@ ACMD_FUNC(mapinfo)
 		default: // normally impossible to arrive here
 			clif_displaymessage(fd, msg_txt(1118)); // Please enter at least one valid list number (usage: @mapinfo <0-3> <map>).
 			return -1;
-			break;
 	}
 
 	return 0;
@@ -4202,8 +4201,8 @@ ACMD_FUNC(guildspy)
 		return -1;
 	}
 
-	if((g = guild_searchname(guild_name)) != NULL ||  // name first to avoid error when name begin with a number
-	   (g = guild_search(atoi(message))) != NULL) {
+	if((g = guild->searchname(guild_name)) != NULL ||  // name first to avoid error when name begin with a number
+	   (g = guild->search(atoi(message))) != NULL) {
 		if(sd->guildspy == g->guild_id) {
 			sd->guildspy = 0;
 			sprintf(atcmd_output, msg_txt(103), g->name); // No longer spying on the %s guild.
@@ -4898,14 +4897,14 @@ ACMD_FUNC(disguiseall)
 ACMD_FUNC(disguiseguild)
 {
 	int id = 0, i;
-	char monster[NAME_LENGTH], guild[NAME_LENGTH];
+	char monster[NAME_LENGTH], guild_name[NAME_LENGTH];
 	struct map_session_data *pl_sd;
 	struct guild *g;
 
 	memset(monster, '\0', sizeof(monster));
-	memset(guild, '\0', sizeof(guild));
+	memset(guild_name, '\0', sizeof(guild_name));
 
-	if(!message || !*message || sscanf(message, "%23[^,], %23[^\r\n]", monster, guild) < 2) {
+	if (!message || !*message || sscanf(message, "%23[^,], %23[^\r\n]", monster, guild_name) < 2) {
 		clif_displaymessage(fd, msg_txt(1146)); // Please enter a mob name/ID and guild name/ID (usage: @disguiseguild <mob name/ID>, <guild name/ID>).
 		return -1;
 	}
@@ -4926,7 +4925,7 @@ ACMD_FUNC(disguiseguild)
 		return -1;
 	}
 
-	if((g = guild_searchname(guild)) == NULL && (g = guild_search(atoi(guild))) == NULL) {
+	if((g = guild->searchname(guild_name)) == NULL && (g = guild->search(atoi(guild_name))) == NULL) {
 		clif_displaymessage(fd, msg_txt(94)); // Incorrect name/ID, or no one from the guild is online.
 		return -1;
 	}
@@ -4995,7 +4994,7 @@ ACMD_FUNC(undisguiseguild)
 		return -1;
 	}
 
-	if((g = guild_searchname(guild_name)) == NULL && (g = guild_search(atoi(message))) == NULL) {
+	if((g = guild->searchname(guild_name)) == NULL && (g = guild->search(atoi(message))) == NULL) {
 		clif_displaymessage(fd, msg_txt(94)); // Incorrect name/ID, or no one from the guild is online.
 		return -1;
 	}
@@ -5323,7 +5322,7 @@ ACMD_FUNC(storeall)
 
 	if(sd->state.storage_flag != 1) {
 		//Open storage.
-		if(storage_storageopen(sd) == 1) {
+		if (storage->open(sd) == 1) {
 			clif_displaymessage(fd, msg_txt(1161)); // You currently cannot open your storage.
 			return -1;
 		}
@@ -5333,10 +5332,10 @@ ACMD_FUNC(storeall)
 		if(sd->status.inventory[i].amount) {
 			if(sd->status.inventory[i].equip != 0)
 				pc_unequipitem(sd, i, 3);
-			storage_storageadd(sd,  i, sd->status.inventory[i].amount);
+			storage->addfromcart(sd, i, sd->status.inventory[i].amount);
 		}
 	}
-	storage_storageclose(sd);
+	storage->close(sd);
 
 	clif_displaymessage(fd, msg_txt(1162)); // All items stored.
 	return 0;
@@ -5354,9 +5353,9 @@ ACMD_FUNC(clearstorage)
 
 	j = sd->status.storage.storage_amount;
 	for(i = 0; i < j; ++i) {
-		storage_delitem(sd, i, sd->status.storage.items[i].amount);
+		storage->delitem(sd, i, sd->status.storage.items[i].amount);
 	}
-	storage_storageclose(sd);
+	storage->close(sd);
 
 	clif_displaymessage(fd, msg_txt(1394)); // Your storage was cleaned.
 	return 0;
@@ -5366,7 +5365,7 @@ ACMD_FUNC(cleargstorage)
 {
 	int i, j;
 	struct guild *g;
-	struct guild_storage *gstorage;
+	struct guild_storage *guild_storage;
 	nullpo_retr(-1, sd);
 
 	g = sd->guild;
@@ -5386,18 +5385,18 @@ ACMD_FUNC(cleargstorage)
 		return -1;
 	}
 
-	gstorage = guild2storage2(sd->status.guild_id);
-	if(gstorage == NULL) { // Doesn't have opened @gstorage yet, so we skip the deletion since *shouldn't* have any item there.
+	guild_storage = gstorage->id2storage2(sd->status.guild_id);
+	if(guild_storage == NULL) { // Doesn't have opened @gstorage yet, so we skip the deletion since *shouldn't* have any item there.
 		return -1;
 	}
 
-	j = gstorage->storage_amount;
-	gstorage->lock = 1; // Lock @gstorage: do not allow any item to be retrieved or stored from any guild member
+	j = guild_storage->storage_amount;
+	guild_storage->lock = 1; // Lock @gstorage: do not allow any item to be retrieved or stored from any guild member
 	for(i = 0; i < j; ++i) {
-		guild_storage_delitem(sd, gstorage, i, gstorage->items[i].amount);
+		gstorage->delitem(sd, guild_storage, i, guild_storage->items[i].amount);
 	}
-	storage_guild_storageclose(sd);
-	gstorage->lock = 0; // Cleaning done, release lock
+	gstorage->close(sd);
+	guild_storage->lock = 0; // Cleaning done, release lock
 
 	clif_displaymessage(fd, msg_txt(1395)); // Your guild storage was cleaned.
 	return 0;
@@ -5579,7 +5578,7 @@ ACMD_FUNC(skilltree)
 	ARR_FIND(0, MAX_SKILL_TREE, j, skill_tree[c][j].id == 0 || skill_tree[c][j].id == skill_id);
 	if(j == MAX_SKILL_TREE || skill_tree[c][j].id == 0) {
 		clif_displaymessage(fd, msg_txt(1169)); // The player cannot use that skill.
-		return 0;
+		return -1;
 	}
 
 	ent = &skill_tree[c][j];
@@ -5769,7 +5768,7 @@ ACMD_FUNC(changegm)
 		return -1;
 	}
 
-	guild_gm_change(sd->status.guild_id, pl_sd);
+	guild->gm_change(sd->status.guild_id, pl_sd);
 	return 0;
 }
 
@@ -7575,7 +7574,7 @@ static int atcommand_mutearea_sub(struct block_list *bl,va_list ap)
 		else
 			status_change_end(&pl_sd->bl, SC_NOCHAT, INVALID_TIMER);
 	}
-	return 0;
+	return 1;
 }
 
 ACMD_FUNC(mutearea)
@@ -7729,19 +7728,19 @@ ACMD_FUNC(sizeall)
 ACMD_FUNC(sizeguild)
 {
 	int size = 0, i;
-	char guild[NAME_LENGTH];
+	char guild_name[NAME_LENGTH];
 	struct map_session_data *pl_sd;
 	struct guild *g;
 	nullpo_retr(-1, sd);
 
-	memset(guild, '\0', sizeof(guild));
+	memset(guild_name, '\0', sizeof(guild_name));
 
-	if(!message || !*message || sscanf(message, "%d %23[^\n]", &size, guild) < 2) {
+	if(!message || !*message || sscanf(message, "%d %23[^\n]", &size, guild_name) < 2) {
 		clif_displaymessage(fd, msg_txt(1304)); // Please enter guild name/ID (usage: @sizeguild <size> <guild name/ID>).
 		return -1;
 	}
 
-	if((g = guild_searchname(guild)) == NULL && (g = guild_search(atoi(guild))) == NULL) {
+	if((g = guild->searchname(guild_name)) == NULL && (g = guild->search(atoi(guild_name))) == NULL) {
 		clif_displaymessage(fd, msg_txt(94)); // Incorrect name/ID, or no one from the guild is online.
 		return -1;
 	}
@@ -7968,7 +7967,7 @@ ACMD_FUNC(invite)
 	if(did == 0)    {
 		// "Duel: @invite without @duel."
 		clif_displaymessage(fd, msg_txt(350));
-		return 0;
+		return -1;
 	}
 
 	if(duel_list[did].max_players_limit > 0 &&
@@ -7976,25 +7975,25 @@ ACMD_FUNC(invite)
 
 		// "Duel: Limit of players is reached."
 		clif_displaymessage(fd, msg_txt(351));
-		return 0;
+		return -1;
 	}
 
 	if(target_sd == NULL) {
 		// "Duel: Player not found."
 		clif_displaymessage(fd, msg_txt(352));
-		return 0;
+		return -1;
 	}
 
 	if(target_sd->duel_group > 0 || target_sd->duel_invite > 0) {
 		// "Duel: Player already in duel."
 		clif_displaymessage(fd, msg_txt(353));
-		return 0;
+		return -1;
 	}
 
 	if(battle_config.duel_only_on_same_map && target_sd->bl.m != sd->bl.m) {
 		sprintf(atcmd_output, msg_txt(364), message);
 		clif_displaymessage(fd, atcmd_output);
-		return 0;
+		return -1;
 	}
 
 	duel_invite(did, sd, target_sd);
@@ -8015,7 +8014,7 @@ ACMD_FUNC(duel)
 	if(sd->duel_invite > 0) {
 		// "Duel: @duel without @reject."
 		clif_displaymessage(fd, msg_txt(355));
-		return 0;
+		return -1;
 	}
 
 	if(!duel_checktime(sd)) {
@@ -8023,14 +8022,14 @@ ACMD_FUNC(duel)
 		// "Duel: You can take part in duel only one time per %d minutes."
 		sprintf(output, msg_txt(356), battle_config.duel_time_interval);
 		clif_displaymessage(fd, output);
-		return 0;
+		return -1;
 	}
 
 	if(message[0]) {
 		if(sscanf(message, "%d", &maxpl) >= 1) {
 			if(maxpl < 2 || maxpl > 65535) {
 				clif_displaymessage(fd, msg_txt(357)); // "Duel: Invalid value."
-				return 0;
+				return -1;
 			}
 			duel_create(sd, maxpl);
 		} else {
@@ -8041,7 +8040,7 @@ ACMD_FUNC(duel)
 				if((newduel = duel_create(sd, 2)) != -1) {
 					if(target_sd->duel_group > 0 || target_sd->duel_invite > 0) {
 						clif_displaymessage(fd, msg_txt(353)); // "Duel: Player already in duel."
-						return 0;
+						return -1;
 					}
 					duel_invite(newduel, sd, target_sd);
 					clif_displaymessage(fd, msg_txt(354)); // "Duel: Invitation has been sent."
@@ -8049,7 +8048,7 @@ ACMD_FUNC(duel)
 			} else {
 				// "Duel: Player not found."
 				clif_displaymessage(fd, msg_txt(352));
-				return 0;
+				return -1;
 			}
 		}
 	} else
@@ -8064,7 +8063,7 @@ ACMD_FUNC(leave)
 	if(sd->duel_group <= 0) {
 		// "Duel: @leave without @duel."
 		clif_displaymessage(fd, msg_txt(358));
-		return 0;
+		return -1;
 	}
 
 	duel_leave(sd->duel_group, sd);
@@ -8079,19 +8078,19 @@ ACMD_FUNC(accept)
 		// "Duel: You can take part in duel only one time per %d minutes."
 		sprintf(output, msg_txt(356), battle_config.duel_time_interval);
 		clif_displaymessage(fd, output);
-		return 0;
+		return -1;
 	}
 
 	if(sd->duel_invite <= 0) {
 		// "Duel: @accept without invititation."
 		clif_displaymessage(fd, msg_txt(360));
-		return 0;
+		return -1;
 	}
 
 	if(duel_list[sd->duel_invite].max_players_limit > 0 && duel_list[sd->duel_invite].members_count >= duel_list[sd->duel_invite].max_players_limit) {
 		// "Duel: Limit of players is reached."
 		clif_displaymessage(fd, msg_txt(351));
-		return 0;
+		return -1;
 	}
 
 	duel_accept(sd->duel_invite, sd);
@@ -8105,7 +8104,7 @@ ACMD_FUNC(reject)
 	if(sd->duel_invite <= 0) {
 		// "Duel: @reject without invititation."
 		clif_displaymessage(fd, msg_txt(362));
-		return 0;
+		return -1;
 	}
 
 	duel_reject(sd->duel_invite, sd);
@@ -8175,17 +8174,17 @@ ACMD_FUNC(clone)
 
 	if(!message || !*message) {
 		clif_displaymessage(sd->fd,msg_txt(1323)); // You must enter a player name or ID.
-		return 0;
+		return -1;
 	}
 
 	if((pl_sd=map_nick2sd((char *)message)) == NULL && (pl_sd=map_charid2sd(atoi(message))) == NULL) {
 		clif_displaymessage(fd, msg_txt(3));    // Character not found.
-		return 0;
+		return -1;
 	}
 
 	if(pc_get_group_level(pl_sd) > pc_get_group_level(sd)) {
 		clif_displaymessage(fd, msg_txt(126));  // Cannot clone a player of higher GM level than yourself.
-		return 0;
+		return -1;
 	}
 
 	if(strcmpi(command+1, "clone") == 0)
@@ -8194,15 +8193,16 @@ ACMD_FUNC(clone)
 		flag = 2;
 
 		if(pc_isdead(sd)) {
+			//"Unable to spawn slave clone."
 			clif_displaymessage(fd, msg_txt(129+flag*2));
-			return 0;
+			return -1;
 		}
 
 		master = sd->bl.id;
 		if(battle_config.atc_slave_clone_limit
 		   && mob_countslave(&sd->bl) >= battle_config.atc_slave_clone_limit) {
 			clif_displaymessage(fd, msg_txt(127));  // You've reached your slave clones limit.
-			return 0;
+			return -1;
 		}
 	}
 
@@ -8221,7 +8221,7 @@ ACMD_FUNC(clone)
 		return 0;
 	}
 	clif_displaymessage(fd, msg_txt(129+flag*2));   // Unable to spawn evil clone. Unable to spawn clone. Unable to spawn slave clone.
-	return 0;
+	return -1;
 }
 
 /*=====================================
@@ -9060,7 +9060,7 @@ ACMD_FUNC(join) {
 		struct guild *g = sd->guild, *sg = NULL;
 		int i;
 		for (i = 0; i < MAX_GUILDALLIANCE; i++) {
-			if(g->alliance[i].opposition == 0 && g->alliance[i].guild_id && (sg = guild_search(g->alliance[i].guild_id))) {
+			if(g->alliance[i].opposition == 0 && g->alliance[i].guild_id && (sg = guild->search(g->alliance[i].guild_id))) {
 				if(!(sg->channel->banned && idb_exists(sg->channel->banned, sd->status.account_id))) {
 					clif_chsys_join(sg->channel,sd);
 				}

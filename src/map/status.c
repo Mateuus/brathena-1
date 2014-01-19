@@ -141,7 +141,7 @@ int status_type2relevant_bl_types(int type)
 {
 	if(type < 0 || type >= SI_MAX) {
 		ShowError("status_type2relevant_bl_types: Unsupported type %d\n", type);
-		return SI_BLANK;
+		return BL_NUL;
 	}
 
 	return StatusRelevantBLTypes[type];
@@ -987,6 +987,7 @@ void initChangeTables(void) {
 	StatusIconChangeTable[SC_ALL_RIDING] = SI_ALL_RIDING;
 	StatusIconChangeTable[SC_MONSTER_TRANSFORM] = SI_MONSTER_TRANSFORM;
 	StatusIconChangeTable[SC_MOONSTAR] = SI_MOONSTAR;
+	StatusIconChangeTable[SC_STRANGELIGHTS] = SI_STRANGELIGHTS;
 	StatusIconChangeTable[SC_DECORATION_OF_MUSIC] = SI_DECORATION_OF_MUSIC;
 
 	//Other SC which are not necessarily associated to skills.
@@ -1073,6 +1074,7 @@ void initChangeTables(void) {
 
 	StatusChangeFlagTable[SC_MOONSTAR] |= SCB_NONE;
 	StatusChangeFlagTable[SC_SUPER_STAR] |= SCB_NONE;
+	StatusChangeFlagTable[SC_STRANGELIGHTS] |= SCB_NONE;
 	StatusChangeFlagTable[SC_DECORATION_OF_MUSIC] |= SCB_NONE;
 
 	/* StatusDisplayType Table [Ind/Hercules] */
@@ -1101,6 +1103,7 @@ void initChangeTables(void) {
 	StatusDisplayType[SC_MONSTER_TRANSFORM] 	= true;
 	StatusDisplayType[SC_MOONSTAR]			= true;
 	StatusDisplayType[SC_SUPER_STAR]		= true;
+	StatusDisplayType[SC_STRANGELIGHTS]		= true;
 	StatusDisplayType[SC_DECORATION_OF_MUSIC]	= true;
 
 #ifdef RENEWAL_EDP
@@ -2270,7 +2273,7 @@ int status_calc_mob_(struct mob_data *md, enum e_status_calc_opt opt)
 	if(flag&4) {
 		// Strengthen Guardians - custom value +10% / lv
 		struct guild_castle *gc;
-		gc=guild_mapname2gc(map[md->bl.m].name);
+		gc = guild->mapname2gc(map[md->bl.m].name);
 		if(!gc)
 			ShowError("status_calc_mob: No castle set at map %s\n", map[md->bl.m].name);
 		else if(gc->castle_id < 24 || md->class_ == MOBID_EMPERIUM) {
@@ -6127,7 +6130,7 @@ int status_get_emblem_id(struct block_list *bl)
 			break;
 		case BL_NPC:
 			if(((TBL_NPC *)bl)->subtype == SCRIPT && ((TBL_NPC *)bl)->u.scr.guild_id > 0) {
-				struct guild *g = guild_search(((TBL_NPC *)bl)->u.scr.guild_id);
+				struct guild *g = guild->search(((TBL_NPC *)bl)->u.scr.guild_id);
 				if(g)
 					return g->emblem_id;
 			}

@@ -3073,12 +3073,12 @@ int64 battle_calc_gvg_damage(struct block_list *src,struct block_list *bl,int64 
 			}
 		}
 		if(src->type != BL_MOB) {
-			struct guild *g = src->type == BL_PC ? ((TBL_PC *)src)->guild : guild_search(status_get_guild_id(src));
+			struct guild *g = src->type == BL_PC ? ((TBL_PC *)src)->guild : guild->search(status_get_guild_id(src));
 
-			if(class_ == MOBID_EMPERIUM && (!g || guild_checkskill(g,GD_APPROVAL) <= 0))
+			if(class_ == MOBID_EMPERIUM && (!g || guild->checkskill(g, GD_APPROVAL) <= 0))
 				return 0;
 
-			if(g && battle_config.guild_max_castles && guild_checkcastles(g)>=battle_config.guild_max_castles)
+			if(g && battle_config.guild_max_castles && guild->checkcastles(g) >= battle_config.guild_max_castles)
 				return 0; // [MouseJstr]
 		}
 	}
@@ -5727,19 +5727,19 @@ enum damage_lv battle_weapon_attack(struct block_list *src, struct block_list *t
 #undef GET_NORMAL_ATTACK
 #undef GET_NORMAL_ATTACK2
 
-int battle_check_undead(int race,int element)
+bool battle_check_undead(int race,int element)
 {
 	if(battle_config.undead_detect_type == 0) {
 		if(element == ELE_UNDEAD)
-			return 1;
+			return true;
 	} else if(battle_config.undead_detect_type == 1) {
 		if(race == RC_UNDEAD)
-			return 1;
+			return true;
 	} else {
 		if(element == ELE_UNDEAD || race == RC_UNDEAD)
-			return 1;
+			return true;
 	}
-	return 0;
+	return false;
 }
 
 //Returns the upmost level master starting with the given object
@@ -6061,7 +6061,7 @@ int battle_check_target(struct block_list *src, struct block_list *target,int fl
 		if(flag&(BCT_GUILD|BCT_ENEMY)) {
 			int s_guild = status_get_guild_id(s_bl);
 			int t_guild = status_get_guild_id(t_bl);
-			if(!(map[m].flag.pvp && map[m].flag.pvp_noguild) && s_guild && t_guild && (s_guild == t_guild || (!(flag&BCT_SAMEGUILD) && guild_isallied(s_guild, t_guild))) && (!map[m].flag.battleground || sbg_id == tbg_id))
+			if(!(map[m].flag.pvp && map[m].flag.pvp_noguild) && s_guild && t_guild && (s_guild == t_guild || (!(flag&BCT_SAMEGUILD) && guild->isallied(s_guild, t_guild))) && (!map[m].flag.battleground || sbg_id == tbg_id))
 				state |= BCT_GUILD;
 			else
 				state |= BCT_ENEMY;
@@ -6092,7 +6092,7 @@ int battle_check_target(struct block_list *src, struct block_list *target,int fl
 		if(flag&BCT_GUILD || state&BCT_ENEMY) {
 			int s_guild = status_get_guild_id(s_bl);
 			int t_guild = status_get_guild_id(t_bl);
-			if(s_guild && t_guild && (s_guild == t_guild || (!(flag&BCT_SAMEGUILD) && guild_isallied(s_guild, t_guild))))
+			if(s_guild && t_guild && (s_guild == t_guild || (!(flag&BCT_SAMEGUILD) && guild->isallied(s_guild, t_guild))))
 				state |= BCT_GUILD;
 		}
 	} //end non pvp/gvg chk rivality
