@@ -13934,7 +13934,7 @@ int skill_consume_requirement(struct map_session_data *sd, uint16 skill_id, uint
 
 struct skill_condition skill_get_requirement(struct map_session_data *sd, uint16 skill_id, uint16 skill_lv) {
 	struct skill_condition req;
-	struct status_data *status;
+	struct status_data *st;
 	struct status_change *sc;
 	int i,hp_rate,sp_rate, sp_skill_rate_bonus = 100;
 	uint16 idx;
@@ -13961,23 +13961,23 @@ struct skill_condition skill_get_requirement(struct map_session_data *sd, uint16
 	if(skill_lv < 1 || skill_lv > MAX_SKILL_LEVEL)
 		return req;
 
-	status = &sd->battle_status;
+	st = &sd->battle_status;
 
 	req.hp = skill_db[idx].hp[skill_lv-1];
 	hp_rate = skill_db[idx].hp_rate[skill_lv-1];
 	if(hp_rate > 0)
-		req.hp += (status->hp *hp_rate)/100;
+		req.hp += (st->hp *hp_rate)/100;
 	else
-		req.hp += (status->max_hp * (-hp_rate))/100;
+		req.hp += (st->max_hp * (-hp_rate))/100;
 
 	req.sp = skill_db[idx].sp[skill_lv-1];
 	if((sd->skill_id_old == BD_ENCORE) && skill_id == sd->skill_id_dance)
 		req.sp /= 2;
 	sp_rate = skill_db[idx].sp_rate[skill_lv-1];
 	if(sp_rate > 0)
-		req.sp += (status->sp *sp_rate)/100;
+		req.sp += (st->sp *sp_rate)/100;
 	else
-		req.sp += (status->max_sp * (-sp_rate))/100;
+		req.sp += (st->max_sp * (-sp_rate))/100;
 	if(sd->dsprate != 100)
 		req.sp = req.sp *sd->dsprate / 100;
 

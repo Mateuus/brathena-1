@@ -2152,11 +2152,11 @@ int pc_bonus_subele(struct map_session_data *sd, unsigned char ele, short rate, 
  *------------------------------------------*/
 int pc_bonus(struct map_session_data *sd,int type,int val)
 {
-	struct status_data *status;
+	struct status_data *bst;
 	int bonus;
 	nullpo_ret(sd);
 
-	status = &sd->base_status;
+	bst = &sd->base_status;
 
 	switch(type) {
 		case SP_STR:
@@ -2170,55 +2170,55 @@ int pc_bonus(struct map_session_data *sd,int type,int val)
 			break;
 		case SP_ATK1:
 			if(!sd->state.lr_flag) {
-				bonus = status->rhw.atk + val;
-				status->rhw.atk = cap_value(bonus, 0, USHRT_MAX);
+				bonus = bst->rhw.atk + val;
+				bst->rhw.atk = cap_value(bonus, 0, USHRT_MAX);
 			} else if(sd->state.lr_flag == 1) {
-				bonus = status->lhw.atk + val;
-				status->lhw.atk =  cap_value(bonus, 0, USHRT_MAX);
+				bonus = bst->lhw.atk + val;
+				bst->lhw.atk =  cap_value(bonus, 0, USHRT_MAX);
 			}
 			break;
 		case SP_ATK2:
 			if(!sd->state.lr_flag) {
-				bonus = status->rhw.atk2 + val;
-				status->rhw.atk2 = cap_value(bonus, 0, USHRT_MAX);
+				bonus = bst->rhw.atk2 + val;
+				bst->rhw.atk2 = cap_value(bonus, 0, USHRT_MAX);
 			} else if(sd->state.lr_flag == 1) {
-				bonus = status->lhw.atk2 + val;
-				status->lhw.atk2 =  cap_value(bonus, 0, USHRT_MAX);
+				bonus = bst->lhw.atk2 + val;
+				bst->lhw.atk2 =  cap_value(bonus, 0, USHRT_MAX);
 			}
 			break;
 		case SP_BASE_ATK:
 			if(sd->state.lr_flag != 2) {
 #if VERSION == 1
-				status->equip_atk += val;
+				bst->equip_atk += val;
 #else
-				bonus = status->batk + val;
-				status->batk = cap_value(bonus, 0, USHRT_MAX);
+				bonus = bst->batk + val;
+				bst->batk = cap_value(bonus, 0, USHRT_MAX);
 #endif
 			}
 			break;
 		case SP_DEF1:
 			if(sd->state.lr_flag != 2) {
-				bonus = status->def + val;
+				bonus = bst->def + val;
 #if VERSION == 1
-				status->def = cap_value(bonus, SHRT_MIN, SHRT_MAX);
+				bst->def = cap_value(bonus, SHRT_MIN, SHRT_MAX);
 #else
-				status->def = cap_value(bonus, CHAR_MIN, CHAR_MAX);
+				bst->def = cap_value(bonus, CHAR_MIN, CHAR_MAX);
 #endif
 			}
 			break;
 		case SP_DEF2:
 			if(sd->state.lr_flag != 2) {
-				bonus = status->def2 + val;
-				status->def2 = cap_value(bonus, SHRT_MIN, SHRT_MAX);
+				bonus = bst->def2 + val;
+				bst->def2 = cap_value(bonus, SHRT_MIN, SHRT_MAX);
 			}
 			break;
 		case SP_MDEF1:
 			if(sd->state.lr_flag != 2) {
-				bonus = status->mdef + val;
+				bonus = bst->mdef + val;
 #if VERSION == 1
-				status->mdef = cap_value(bonus, SHRT_MIN, SHRT_MAX);
+				bst->mdef = cap_value(bonus, SHRT_MIN, SHRT_MAX);
 #else
-				status->mdef = cap_value(bonus, CHAR_MIN, CHAR_MAX);
+				bst->mdef = cap_value(bonus, CHAR_MIN, CHAR_MAX);
 #endif
 				if(sd->state.lr_flag == 3) {  //Shield, used for royal guard
 					sd->bonus.shieldmdef += bonus;
@@ -2227,33 +2227,33 @@ int pc_bonus(struct map_session_data *sd,int type,int val)
 			break;
 		case SP_MDEF2:
 			if(sd->state.lr_flag != 2) {
-				bonus = status->mdef2 + val;
-				status->mdef2 = cap_value(bonus, SHRT_MIN, SHRT_MAX);
+				bonus = bst->mdef2 + val;
+				bst->mdef2 = cap_value(bonus, SHRT_MIN, SHRT_MAX);
 			}
 			break;
 		case SP_HIT:
 			if(sd->state.lr_flag != 2) {
-				bonus = status->hit + val;
-				status->hit = cap_value(bonus, SHRT_MIN, SHRT_MAX);
+				bonus = bst->hit + val;
+				bst->hit = cap_value(bonus, SHRT_MIN, SHRT_MAX);
 			} else
 				sd->bonus.arrow_hit+=val;
 			break;
 		case SP_FLEE1:
 			if(sd->state.lr_flag != 2) {
-				bonus = status->flee + val;
-				status->flee = cap_value(bonus, SHRT_MIN, SHRT_MAX);
+				bonus = bst->flee + val;
+				bst->flee = cap_value(bonus, SHRT_MIN, SHRT_MAX);
 			}
 			break;
 		case SP_FLEE2:
 			if(sd->state.lr_flag != 2) {
-				bonus = status->flee2 + val*10;
-				status->flee2 = cap_value(bonus, SHRT_MIN, SHRT_MAX);
+				bonus = bst->flee2 + val*10;
+				bst->flee2 = cap_value(bonus, SHRT_MIN, SHRT_MAX);
 			}
 			break;
 		case SP_CRITICAL:
 			if(sd->state.lr_flag != 2) {
-				bonus = status->cri + val*10;
-				status->cri = cap_value(bonus, SHRT_MIN, SHRT_MAX);
+				bonus = bst->cri + val*10;
+				bst->cri = cap_value(bonus, SHRT_MIN, SHRT_MAX);
 			} else
 				sd->bonus.arrow_cri += val*10;
 			break;
@@ -2272,7 +2272,7 @@ int pc_bonus(struct map_session_data *sd,int type,int val)
 						case W_SHOTGUN:
 						case W_GRENADE:
 							//Become weapon element.
-							status->rhw.ele=val;
+							bst->rhw.ele=val;
 							break;
 						default: //Become arrow element.
 							sd->bonus.arrow_ele=val;
@@ -2280,10 +2280,10 @@ int pc_bonus(struct map_session_data *sd,int type,int val)
 					}
 					break;
 				case 1:
-					status->lhw.ele=val;
+					bst->lhw.ele=val;
 					break;
 				default:
-					status->rhw.ele=val;
+					bst->rhw.ele=val;
 					break;
 			}
 			break;
@@ -2293,21 +2293,21 @@ int pc_bonus(struct map_session_data *sd,int type,int val)
 				break;
 			}
 			if(sd->state.lr_flag != 2)
-				status->def_ele=val;
+				bst->def_ele=val;
 			break;
 		case SP_MAXHP:
 			if(sd->state.lr_flag == 2)
 				break;
-			val += (int)status->max_hp;
+			val += (int)bst->max_hp;
 			//Negative bonuses will underflow, this will be handled in status_calc_pc through casting
 			//If this is called outside of status_calc_pc, you'd better pray they do not underflow and end with UINT_MAX max_hp.
-			status->max_hp = (unsigned int)val;
+			bst->max_hp = (unsigned int)val;
 			break;
 		case SP_MAXSP:
 			if(sd->state.lr_flag == 2)
 				break;
-			val += (int)status->max_sp;
-			status->max_sp = (unsigned int)val;
+			val += (int)bst->max_sp;
+			bst->max_sp = (unsigned int)val;
 			break;
 #ifndef RENEWAL_CAST
 		case SP_VARCASTRATE:
@@ -2338,14 +2338,14 @@ int pc_bonus(struct map_session_data *sd,int type,int val)
 						case W_GATLING:
 						case W_SHOTGUN:
 						case W_GRENADE:
-							status->rhw.range += val;
+							bst->rhw.range += val;
 					}
 					break;
 				case 1:
-					status->lhw.range += val;
+					bst->lhw.range += val;
 					break;
 				default:
-					status->rhw.range += val;
+					bst->rhw.range += val;
 					break;
 			}
 			break;
@@ -2364,9 +2364,9 @@ int pc_bonus(struct map_session_data *sd,int type,int val)
 		case SP_ASPD_RATE:  //Stackable increase - Made it linear as per rodatazone
 			if(sd->state.lr_flag != 2)
 #ifndef RENEWAL_ASPD
-				status->aspd_rate -= 10*val;
+				bst->aspd_rate -= 10*val;
 #else
-				status->aspd_rate2 += val;
+				bst->aspd_rate2 += val;
 #endif
 			break;
 		case SP_HP_RECOV_RATE:

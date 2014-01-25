@@ -15947,54 +15947,54 @@ void clif_quest_show_event(struct map_session_data *sd, struct block_list *bl, s
 void clif_mercenary_updatestatus(struct map_session_data *sd, int type)
 {
 	struct mercenary_data *md;
-	struct status_data *status;
+	struct status_data *mstatus;
 	int fd;
 	if(sd == NULL || (md = sd->md) == NULL)
 		return;
 
 	fd = sd->fd;
-	status = &md->battle_status;
+	mstatus = &md->battle_status;
 	WFIFOHEAD(fd,packet_len(0x2a2));
 	WFIFOW(fd,0) = 0x2a2;
 	WFIFOW(fd,2) = type;
 	switch(type) {
 		case SP_ATK1: {
-				int atk = rnd()%(status->rhw.atk2 - status->rhw.atk + 1) + status->rhw.atk;
+				int atk = rnd()%(mstatus->rhw.atk2 - mstatus->rhw.atk + 1) + mstatus->rhw.atk;
 				WFIFOL(fd,4) = cap_value(atk, 0, INT16_MAX);
 			}
 			break;
 		case SP_MATK1:
-			WFIFOL(fd,4) = cap_value(status->matk_max, 0, INT16_MAX);
+			WFIFOL(fd,4) = cap_value(mstatus->matk_max, 0, INT16_MAX);
 			break;
 		case SP_HIT:
-			WFIFOL(fd,4) = status->hit;
+			WFIFOL(fd,4) = mstatus->hit;
 			break;
 		case SP_CRITICAL:
-			WFIFOL(fd,4) = status->cri/10;
+			WFIFOL(fd,4) = mstatus->cri/10;
 			break;
 		case SP_DEF1:
-			WFIFOL(fd,4) = status->def;
+			WFIFOL(fd,4) = mstatus->def;
 			break;
 		case SP_MDEF1:
-			WFIFOL(fd,4) = status->mdef;
+			WFIFOL(fd,4) = mstatus->mdef;
 			break;
 		case SP_MERCFLEE:
-			WFIFOL(fd,4) = status->flee;
+			WFIFOL(fd,4) = mstatus->flee;
 			break;
 		case SP_ASPD:
-			WFIFOL(fd,4) = status->amotion;
+			WFIFOL(fd,4) = mstatus->amotion;
 			break;
 		case SP_HP:
-			WFIFOL(fd,4) = status->hp;
+			WFIFOL(fd,4) = mstatus->hp;
 			break;
 		case SP_MAXHP:
-			WFIFOL(fd,4) = status->max_hp;
+			WFIFOL(fd,4) = mstatus->max_hp;
 			break;
 		case SP_SP:
-			WFIFOL(fd,4) = status->sp;
+			WFIFOL(fd,4) = mstatus->sp;
 			break;
 		case SP_MAXSP:
-			WFIFOL(fd,4) = status->max_sp;
+			WFIFOL(fd,4) = mstatus->max_sp;
 			break;
 		case SP_MERCKILLS:
 			WFIFOL(fd,4) = md->mercenary.kill_count;
@@ -16015,35 +16015,35 @@ void clif_mercenary_info(struct map_session_data *sd)
 {
 	int fd;
 	struct mercenary_data *md;
-	struct status_data *status;
+	struct status_data *mstatus;
 	int atk;
 
 	if(sd == NULL || (md = sd->md) == NULL)
 		return;
 
 	fd = sd->fd;
-	status = &md->battle_status;
+	mstatus = &md->battle_status;
 
 	WFIFOHEAD(fd,packet_len(0x29b));
 	WFIFOW(fd,0) = 0x29b;
 	WFIFOL(fd,2) = md->bl.id;
 
 	// Mercenary shows ATK as a random value between ATK ~ ATK2
-	atk = rnd()%(status->rhw.atk2 - status->rhw.atk + 1) + status->rhw.atk;
+	atk = rnd()%(mstatus->rhw.atk2 - mstatus->rhw.atk + 1) + mstatus->rhw.atk;
 	WFIFOW(fd,6) = cap_value(atk, 0, INT16_MAX);
-	WFIFOW(fd,8) = cap_value(status->matk_max, 0, INT16_MAX);
-	WFIFOW(fd,10) = status->hit;
-	WFIFOW(fd,12) = status->cri/10;
-	WFIFOW(fd,14) = status->def;
-	WFIFOW(fd,16) = status->mdef;
-	WFIFOW(fd,18) = status->flee;
-	WFIFOW(fd,20) = status->amotion;
+	WFIFOW(fd,8) = cap_value(mstatus->matk_max, 0, INT16_MAX);
+	WFIFOW(fd,10) = mstatus->hit;
+	WFIFOW(fd,12) = mstatus->cri/10;
+	WFIFOW(fd,14) = mstatus->def;
+	WFIFOW(fd,16) = mstatus->mdef;
+	WFIFOW(fd,18) = mstatus->flee;
+	WFIFOW(fd,20) = mstatus->amotion;
 	safestrncpy((char *)WFIFOP(fd,22), md->db->name, NAME_LENGTH);
 	WFIFOW(fd,46) = md->db->lv;
-	WFIFOL(fd,48) = status->hp;
-	WFIFOL(fd,52) = status->max_hp;
-	WFIFOL(fd,56) = status->sp;
-	WFIFOL(fd,60) = status->max_sp;
+	WFIFOL(fd,48) = mstatus->hp;
+	WFIFOL(fd,52) = mstatus->max_hp;
+	WFIFOL(fd,56) = mstatus->sp;
+	WFIFOL(fd,60) = mstatus->max_sp;
 	WFIFOL(fd,64) = (int)time(NULL) + (mercenary_get_lifetime(md) / 1000);
 	WFIFOW(fd,68) = mercenary_get_faith(md);
 	WFIFOL(fd,70) = mercenary_get_calls(md);
@@ -16571,29 +16571,29 @@ void clif_parse_ItemListWindowSelected(int fd, struct map_session_data *sd)
 void clif_elemental_updatestatus(struct map_session_data *sd, int type)
 {
 	struct elemental_data *ed;
-	struct status_data *status;
+	struct status_data *estatus;
 	int fd;
 
 	if(sd == NULL || (ed = sd->ed) == NULL)
 		return;
 
 	fd = sd->fd;
-	status = &ed->battle_status;
+	estatus = &ed->battle_status;
 	WFIFOHEAD(fd,8);
 	WFIFOW(fd,0) = 0x81e;
 	WFIFOW(fd,2) = type;
 	switch(type) {
 		case SP_HP:
-			WFIFOL(fd,4) = status->hp;
+			WFIFOL(fd,4) = estatus->hp;
 			break;
 		case SP_MAXHP:
-			WFIFOL(fd,4) = status->max_hp;
+			WFIFOL(fd,4) = estatus->max_hp;
 			break;
 		case SP_SP:
-			WFIFOL(fd,4) = status->sp;
+			WFIFOL(fd,4) = estatus->sp;
 			break;
 		case SP_MAXSP:
-			WFIFOL(fd,4) = status->max_sp;
+			WFIFOL(fd,4) = estatus->max_sp;
 			break;
 	}
 	WFIFOSET(fd,8);
@@ -16603,21 +16603,21 @@ void clif_elemental_info(struct map_session_data *sd)
 {
 	int fd;
 	struct elemental_data *ed;
-	struct status_data *status;
+	struct status_data *estatus;
 
 	if(sd == NULL || (ed = sd->ed) == NULL)
 		return;
 
 	fd = sd->fd;
-	status = &ed->battle_status;
+	estatus = &ed->battle_status;
 
 	WFIFOHEAD(fd,22);
 	WFIFOW(fd, 0) = 0x81d;
 	WFIFOL(fd, 2) = ed->bl.id;
-	WFIFOL(fd, 6) = status->hp;
-	WFIFOL(fd,10) = status->max_hp;
-	WFIFOL(fd,14) = status->sp;
-	WFIFOL(fd,18) = status->max_sp;
+	WFIFOL(fd, 6) = estatus->hp;
+	WFIFOL(fd,10) = estatus->max_hp;
+	WFIFOL(fd,14) = estatus->sp;
+	WFIFOL(fd,18) = estatus->max_sp;
 	WFIFOSET(fd,22);
 }
 
