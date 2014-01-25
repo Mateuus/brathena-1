@@ -267,9 +267,9 @@ int elemental_data_received(struct s_elemental *ele, bool flag)
 		ed->master = sd;
 		ed->db = db;
 		memcpy(&ed->elemental, ele, sizeof(struct s_elemental));
-		status_set_viewdata(&ed->bl, ed->elemental.class_);
+		status->set_viewdata(&ed->bl, ed->elemental.class_);
 		ed->vd->head_mid = 10; // Why?
-		status_change_init(&ed->bl);
+		status->change_init(&ed->bl);
 		unit_dataset(&ed->bl);
 		ed->ud.dir = sd->ud.dir;
 
@@ -307,7 +307,7 @@ int elemental_data_received(struct s_elemental *ele, bool flag)
 int elemental_clean_single_effect(struct elemental_data *ed, uint16 skill_id)
 {
 	struct block_list *bl;
-	sc_type type = status_skill2sc(skill_id);
+	sc_type type = status->skill2sc(skill_id);
 
 	nullpo_ret(ed);
 
@@ -458,9 +458,9 @@ int elemental_action(struct elemental_data *ed, struct block_list *bl, int64 tic
 			ed->ud.skill_lv = skill_lv;
 
 			if(skill_get_inf(skill_id) & INF_GROUND_SKILL)
-				ed->ud.skilltimer = add_timer(tick+status_get_speed(&ed->bl)*walk_dist, skill_castend_pos, ed->bl.id, 0);
+				ed->ud.skilltimer = add_timer(tick + status->get_speed(&ed->bl)*walk_dist, skill_castend_pos, ed->bl.id, 0);
 			else
-				ed->ud.skilltimer = add_timer(tick+status_get_speed(&ed->bl)*walk_dist, skill_castend_id, ed->bl.id, 0);
+				ed->ud.skilltimer = add_timer(tick + status->get_speed(&ed->bl)*walk_dist, skill_castend_id, ed->bl.id, 0);
 		}
 		return 1;
 
@@ -624,7 +624,7 @@ int elemental_set_target(struct map_session_data *sd, struct block_list *bl)
 	if(ed->bl.m != bl->m || !check_distance_bl(&ed->bl, bl, ed->db->range2))
 		return 0;
 
-	if(!status_check_skilluse(&ed->bl, bl, 0, 0))
+	if(!status->check_skilluse(&ed->bl, bl, 0, 0))
 		return 0;
 
 	if(ed->target_id == 0)
@@ -645,7 +645,7 @@ static int elemental_ai_sub_timer_activesearch(struct block_list *bl, va_list ap
 	target = va_arg(ap,struct block_list **);
 
 	//If can't seek yet, not an enemy, or you can't attack it, skip.
-	if((*target) == bl || !status_check_skilluse(&ed->bl, bl, 0, 0))
+	if((*target) == bl || !status->check_skilluse(&ed->bl, bl, 0, 0))
 		return 0;
 
 	if(battle_check_target(&ed->bl,bl,BCT_ENEMY) <= 0)

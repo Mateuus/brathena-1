@@ -947,9 +947,9 @@ ACMD_FUNC(hide)
 	if(sd->sc.option & OPTION_INVISIBLE) {
 		sd->sc.option &= ~OPTION_INVISIBLE;
 		if(sd->disguise != -1 )
-			status_set_viewdata(&sd->bl, sd->disguise);
+			status->set_viewdata(&sd->bl, sd->disguise);
 		else
-			status_set_viewdata(&sd->bl, sd->status.class_);
+			status->set_viewdata(&sd->bl, sd->status.class_);
 		clif_displaymessage(fd, msg_txt(10)); // Invisible: Off
 
 		// increment the number of pvp players on the map
@@ -1075,7 +1075,7 @@ ACMD_FUNC(kill)
 ACMD_FUNC(alive)
 {
 	nullpo_retr(-1, sd);
-	if(!status_revive(&sd->bl, 100, 100)) {
+	if(!status->revive(&sd->bl, 100, 100)) {
 		clif_displaymessage(fd, msg_txt(667));
 		return -1;
 	}
@@ -1143,7 +1143,7 @@ ACMD_FUNC(heal)
 	}
 
 	if(hp > 0 && sp >= 0) {
-		if(!status_heal(&sd->bl, hp, sp, 0))
+		if(!status->heal(&sd->bl, hp, sp, 0))
 			clif_displaymessage(fd, msg_txt(157)); // HP and SP are already with the good value.
 		else
 			clif_displaymessage(fd, msg_txt(17)); // HP, SP recovered.
@@ -1151,7 +1151,7 @@ ACMD_FUNC(heal)
 	}
 
 	if(hp < 0 && sp <= 0) {
-		status_damage(NULL, &sd->bl, -hp, -sp, 0, 0);
+		status->damage(NULL, &sd->bl, -hp, -sp, 0, 0);
 		clif_damage(&sd->bl,&sd->bl, 0, 0, -hp, 0, 4, 0);
 		clif_displaymessage(fd, msg_txt(156)); // HP or/and SP modified.
 		return 0;
@@ -1160,18 +1160,18 @@ ACMD_FUNC(heal)
 	//Opposing signs.
 	if(hp) {
 		if(hp > 0)
-			status_heal(&sd->bl, hp, 0, 0);
+			status->heal(&sd->bl, hp, 0, 0);
 		else {
-			status_damage(NULL, &sd->bl, -hp, 0, 0, 0);
+			status->damage(NULL, &sd->bl, -hp, 0, 0, 0);
 			clif_damage(&sd->bl,&sd->bl, 0, 0, -hp, 0, 4, 0);
 		}
 	}
 
 	if(sp) {
 		if(sp > 0)
-			status_heal(&sd->bl, 0, sp, 0);
+			status->heal(&sd->bl, 0, sp, 0);
 		else
-			status_damage(NULL, &sd->bl, 0, -sp, 0, 0);
+			status->damage(NULL, &sd->bl, 0, -sp, 0, 0);
 	}
 
 	clif_displaymessage(fd, msg_txt(156)); // HP or/and SP modified.
@@ -2486,7 +2486,7 @@ ACMD_FUNC(param)
 {
 	int i, value = 0, new_value, max;
 	const char *param[] = { "str", "agi", "vit", "int", "dex", "luk" };
-	short *status[6];
+	short *stats[6];
 	//we don't use direct initialization because it isn't part of the c standard.
 	nullpo_retr(-1, sd);
 
@@ -2504,28 +2504,28 @@ ACMD_FUNC(param)
 		return -1;
 	}
 
-	status[0] = &sd->status.str;
-	status[1] = &sd->status.agi;
-	status[2] = &sd->status.vit;
-	status[3] = &sd->status.int_;
-	status[4] = &sd->status.dex;
-	status[5] = &sd->status.luk;
+	stats[0] = &sd->status.str;
+	stats[1] = &sd->status.agi;
+	stats[2] = &sd->status.vit;
+	stats[3] = &sd->status.int_;
+	stats[4] = &sd->status.dex;
+	stats[5] = &sd->status.luk;
 
 	if(battle_config.atcommand_max_stat_bypass)
 		max = SHRT_MAX;
 	else
 		max = pc_maxparameter(sd);
 
-	if(value < 0 && *status[i] <= -value) {
+	if(value < 0 && *stats[i] <= -value) {
 		new_value = 1;
-	} else if(max - *status[i] < value) {
+	} else if(max - *stats[i] < value) {
 		new_value = max;
 	} else {
-		new_value = *status[i] + value;
+		new_value = *stats[i] + value;
 	}
 
-	if(new_value != *status[i]) {
-		*status[i] = new_value;
+	if(new_value != *stats[i]) {
+		*stats[i] = new_value;
 		clif_updatestatus(sd, SP_STR + i);
 		clif_updatestatus(sd, SP_USTR + i);
 		status_calc_pc(sd, SCO_FORCE);
@@ -2547,16 +2547,16 @@ ACMD_FUNC(param)
 ACMD_FUNC(stat_all)
 {
 	int index, count, value, max, new_value;
-	short *status[6];
+	short *stats[6];
 	//we don't use direct initialization because it isn't part of the c standard.
 	nullpo_retr(-1, sd);
 
-	status[0] = &sd->status.str;
-	status[1] = &sd->status.agi;
-	status[2] = &sd->status.vit;
-	status[3] = &sd->status.int_;
-	status[4] = &sd->status.dex;
-	status[5] = &sd->status.luk;
+	stats[0] = &sd->status.str;
+	stats[1] = &sd->status.agi;
+	stats[2] = &sd->status.vit;
+	stats[3] = &sd->status.int_;
+	stats[4] = &sd->status.dex;
+	stats[5] = &sd->status.luk;
 
 	if(!message || !*message || sscanf(message, "%d", &value) < 1 || value == 0) {
 		value = pc_maxparameter(sd);
@@ -2569,17 +2569,17 @@ ACMD_FUNC(stat_all)
 	}
 
 	count = 0;
-	for(index = 0; index < ARRAYLENGTH(status); index++) {
+	for(index = 0; index < ARRAYLENGTH(stats); index++) {
 
-		if(value > 0 && *status[index] > max - value)
+		if(value > 0 && *stats[index] > max - value)
 			new_value = max;
-		else if(value < 0 && *status[index] <= -value)
+		else if(value < 0 && *stats[index] <= -value)
 			new_value = 1;
 		else
-			new_value = *status[index] +value;
+			new_value = *stats[index] +value;
 
-		if(new_value != (int)*status[index]) {
-			*status[index] = new_value;
+		if(new_value != (int)*stats[index]) {
+			*stats[index] = new_value;
 			clif_updatestatus(sd, SP_STR + index);
 			clif_updatestatus(sd, SP_USTR + index);
 			count++;
@@ -2606,9 +2606,8 @@ ACMD_FUNC(stat_all)
 ACMD_FUNC(guildlevelup)
 {
 	int level = 0;
-	short added_level;
+	int16 added_level;
 	struct guild *guild_info;
-	nullpo_retr(-1, sd);
 
 	if(!message || !*message || sscanf(message, "%d", &level) < 1 || level == 0) {
 		clif_displaymessage(fd, msg_txt(1014)); // Please enter a valid level (usage: @guildlvup/@guildlvlup <# of levels>).
@@ -2619,16 +2618,18 @@ ACMD_FUNC(guildlevelup)
 		clif_displaymessage(fd, msg_txt(43)); // You're not in a guild.
 		return -1;
 	}
-	//if (strcmp(sd->status.name, guild_info->master) != 0) {
-	//  clif_displaymessage(fd, msg_txt(44)); // You're not the master of your guild.
-	//  return -1;
-	//}
+#if 0 // By enabling this, only the guild leader can use this command
+	if (strcmp(sd->status.name, guild_info->master) != 0) {
+	  clif_displaymessage(fd, msg_txt(44)); // You're not the master of your guild.
+	  return -1;
+	}
+#endif // 0
 
-	added_level = (short)level;
-	if(level > 0 && (level > MAX_GUILDLEVEL || added_level > ((short)MAX_GUILDLEVEL - guild_info->guild_lv)))  // fix positiv overflow
-		added_level = (short)MAX_GUILDLEVEL - guild_info->guild_lv;
-	else if(level < 0 && (level < -MAX_GUILDLEVEL || added_level < (1 - guild_info->guild_lv)))  // fix negativ overflow
-		added_level = 1 - guild_info->guild_lv;
+	if(level > INT16_MAX || (level > 0 && level > MAX_GUILDLEVEL - guild_info->guild_lv)) // fix positive overflow
+		level = MAX_GUILDLEVEL - guild_info->guild_lv;
+	else if(level < INT16_MIN || (level < 0 && level < 1 - guild_info->guild_lv)) // fix negative overflow
+		level = 1 - guild_info->guild_lv;
+	added_level = (int16)level;
 
 	if(added_level != 0) {
 		intif_guild_change_basicinfo(guild_info->guild_id, GBI_GUILDLV, &added_level, sizeof(added_level));
@@ -3084,7 +3085,7 @@ ACMD_FUNC(doommap)
 static void atcommand_raise_sub(struct map_session_data *sd)
 {
 
-	status_revive(&sd->bl, 100, 100);
+	status->revive(&sd->bl, 100, 100);
 
 	clif_skill_nodamage(&sd->bl,&sd->bl,ALL_RESURRECTION,4,1);
 	clif_displaymessage(sd->fd, msg_txt(63)); // Mercy has been shown.
@@ -3699,7 +3700,7 @@ ACMD_FUNC(reload)
 		reload_elemental_skilldb();
 		#endif
 		read_mercenary_skilldb(); break;
-		case 3: status_readdb(); break;
+		case 3: status->readdb(); break;
 		case 4: pc_readdb(); break;
 		case 5: pcg->reload(); break;
 		case 6: quest->reload(); break;
@@ -3717,7 +3718,7 @@ ACMD_FUNC(reload)
 			mapit_free(sd_cash);
 			break;
 		}
-		case 11: read_buffspecial_db(); break;
+		case 11: status->read_buffspecial_db(); break;
 		default: message = "Digite um opção válida."; option = -2; break;
 	}
 
@@ -5528,7 +5529,7 @@ ACMD_FUNC(useskill)
  *------------------------------------------*/
 ACMD_FUNC(displayskill)
 {
-	struct status_data *status;
+	struct status_data *st;
 	int64 tick;
 	uint16 skill_id;
 	uint16 skill_lv = 1;
@@ -5538,9 +5539,9 @@ ACMD_FUNC(displayskill)
 		clif_displaymessage(fd, msg_txt(1166)); // Usage: @displayskill <skill ID> {<skill level>}
 		return -1;
 	}
-	status = status_get_status_data(&sd->bl);
+	st = status->get_status_data(&sd->bl);
 	tick = gettick();
-	clif_skill_damage(&sd->bl,&sd->bl, tick, status->amotion, status->dmotion, 1, 1, skill_id, skill_lv, 5);
+	clif_skill_damage(&sd->bl, &sd->bl, tick, st->amotion, st->dmotion, 1, 1, skill_id, skill_lv, 5);
 	clif_skill_nodamage(&sd->bl, &sd->bl, skill_id, skill_lv, 1);
 	clif_skill_poseffect(&sd->bl, skill_id, skill_lv, sd->bl.x, sd->bl.y, tick);
 	return 0;
@@ -5722,7 +5723,7 @@ ACMD_FUNC(autotrade)
 	sd->state.autotrade = 1;
 	if(battle_config.at_timeout) {
 		int timeout = atoi(message);
-		status_change_start(&sd->bl, SC_AUTOTRADE, 10000, 0, 0, 0, 0, ((timeout > 0) ? min(timeout,battle_config.at_timeout) : battle_config.at_timeout) * 60000, 0);
+		status->change_start(&sd->bl, SC_AUTOTRADE, 10000, 0, 0, 0, 0, ((timeout > 0) ? min(timeout, battle_config.at_timeout) : battle_config.at_timeout) * 60000, 0);
 	}
 
 	clif_chsys_quit(sd);
@@ -7279,7 +7280,7 @@ ACMD_FUNC(homtalk)
 ACMD_FUNC(hominfo)
 {
 	struct homun_data *hd;
-	struct status_data *status;
+	struct status_data *st;
 	nullpo_retr(-1, sd);
 
 	if(!homun_alive(sd->hd)) {
@@ -7288,15 +7289,15 @@ ACMD_FUNC(hominfo)
 	}
 
 	hd = sd->hd;
-	status = status_get_status_data(&hd->bl);
+	st = status->get_status_data(&hd->bl);
 	clif_displaymessage(fd, msg_txt(1261)); // Homunculus stats:
 
 	snprintf(atcmd_output, sizeof(atcmd_output) ,msg_txt(1262), // HP: %d/%d - SP: %d/%d
-	         status->hp, status->max_hp, status->sp, status->max_sp);
+	         st->hp, st->max_hp, st->sp, st->max_sp);
 	clif_displaymessage(fd, atcmd_output);
 
 	snprintf(atcmd_output, sizeof(atcmd_output) ,msg_txt(1263), // ATK: %d - MATK: %d~%d
-	         status->rhw.atk2 +status->batk, status->matk_min, status->matk_max);
+	         st->rhw.atk2 +st->batk, st->matk_min, st->matk_max);
 	clif_displaymessage(fd, atcmd_output);
 
 	snprintf(atcmd_output, sizeof(atcmd_output) ,msg_txt(1264), // Hungry: %d - Intimacy: %u
@@ -7305,8 +7306,8 @@ ACMD_FUNC(hominfo)
 
 	snprintf(atcmd_output, sizeof(atcmd_output) ,
 	         msg_txt(1265), // Stats: Str %d / Agi %d / Vit %d / Int %d / Dex %d / Luk %d
-	         status->str, status->agi, status->vit,
-	         status->int_, status->dex, status->luk);
+	         st->str, st->agi, st->vit,
+	         st->int_, st->dex, st->luk);
 	clif_displaymessage(fd, atcmd_output);
 
 	return 0;
@@ -10095,9 +10096,14 @@ static void atcommand_get_suggestions(struct map_session_data *sd, const char *n
 	dbi_destroy(alias_iter);
 }
 
-/// Executes an at-command.
-bool is_atcommand(const int fd, struct map_session_data *sd, const char *message, int type)
-{
+/**
+ * Executes an at-command
+ * @param fd             fd associated to the invoking character
+ * @param sd             sd associated to the invoking character
+ * @param message        atcommand arguments
+ * @param player_invoked true if the command was invoked by a player, false if invoked by the server (bypassing any restrictions)
+ */
+bool atcommand_exec(const int fd, struct map_session_data *sd, const char *message, bool player_invoked) {
 	char charname[NAME_LENGTH], params[100];
 	char charname2[NAME_LENGTH], params2[100];
 	char command[100];
@@ -10127,9 +10133,7 @@ bool is_atcommand(const int fd, struct map_session_data *sd, const char *message
 	if(*message != atcommand_symbol && *message != charcommand_symbol)
 		return false;
 
-	// type value 0 = server invoked: bypass restrictions
-	// 1 = player invoked
-	if(type == 1) {
+	if (player_invoked) {
 		//Commands are disabled on maps flagged as 'nocommand'
 		if(map[sd->bl.m].nocommand && pc_get_group_level(sd) < map[sd->bl.m].nocommand) {
 			clif_displaymessage(fd, msg_txt(143));
@@ -10197,26 +10201,33 @@ bool is_atcommand(const int fd, struct map_session_data *sd, const char *message
 		params[0] = '\0';
 
 	// @commands (script based)
-	if(type == 1 && atcmd_binding_count > 0) {
-		struct atcmd_binding_data *binding;
+	if (player_invoked && atcmd_binding_count > 0) {
+		struct atcmd_binding_data * binding;
+
+	// Get atcommand binding
+		binding = get_atcommandbind_byname(command);
+
+		// Check if the binding isn't NULL and there is a NPC event, level of usage met, et cetera
+		if(binding != NULL
+		&& binding->npc_event[0]
+		&&(
+		    (*atcmd_msg == atcommand_symbol && pc_get_group_level(sd) >= binding->level)
+			|| (*atcmd_msg == charcommand_symbol && pc_get_group_level(sd) >= binding->level2))) {
+			// Check if self or character invoking; if self == character invoked, then self invoke.
+			bool invokeFlag = ((*atcmd_msg == atcommand_symbol) ? 1 : 0);
 
 		// Check if the command initiated is a character command
-		if(*message == charcommand_symbol &&
-		   (ssd = map_nick2sd(charname)) == NULL && (ssd = map_nick2sd(charname2)) == NULL) {
+		if(*message == charcommand_symbol
+		  && (ssd = map_nick2sd(charname)) == NULL
+		  && (ssd = map_nick2sd(charname2)) == NULL) {
 			sprintf(output, msg_txt(1389), command); // %s failed. Player not found.
 			clif_displaymessage(fd, output);
 			return true;
 		}
 
-		// Get atcommand binding
-		binding = get_atcommandbind_byname(command);
+		if(binding->log) /* log only if this command should be logged */
+				log_atcommand(sd, atcmd_msg);
 
-		// Check if the binding isn't NULL and there is a NPC event, level of usage met, et cetera
-		if(binding != NULL && binding->npc_event[0] &&
-		   ((*atcmd_msg == atcommand_symbol && pc_get_group_level(sd) >= binding->level) ||
-		    (*atcmd_msg == charcommand_symbol && pc_get_group_level(sd) >= binding->level2))) {
-			// Check if self or character invoking; if self == character invoked, then self invoke.
-			bool invokeFlag = ((*atcmd_msg == atcommand_symbol) ? 1 : 0);
 			npc->do_atcmd_event((invokeFlag ? sd : ssd), command, params, binding->npc_event);
 			return true;
 		}
@@ -10234,8 +10245,7 @@ bool is_atcommand(const int fd, struct map_session_data *sd, const char *message
 			return false;
 	}
 
-	// type == 1 : player invoked
-	if(type == 1) {
+	if (player_invoked) {
 		int i;
 		if((*command == atcommand_symbol && info->at_groups[pcg->get_idx(sd->group)] == 0) ||
 		   (*command == charcommand_symbol && info->char_groups[pcg->get_idx(sd->group)] == 0)) {
@@ -10271,11 +10281,8 @@ bool is_atcommand(const int fd, struct map_session_data *sd, const char *message
 		return true;
 	}
 
-	//Log only if successful.
-	if(*atcmd_msg == atcommand_symbol)
-		log_atcommand(sd, atcmd_msg);
-	else if(*atcmd_msg == charcommand_symbol)
-		log_atcommand(sd, message);
+	if(info->log) /* log only if this command should be logged */
+		log_atcommand(sd, *atcmd_msg == atcommand_symbol ? atcmd_msg : message);
 
 	return true;
 }
