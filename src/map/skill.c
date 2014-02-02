@@ -1152,7 +1152,7 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl, uint1
 
 		case TF_THROWSTONE:
 	#if VERSION == -1
-			if(!sc_start(bl,SC_STUN,5,skill_lv,skill_get_time(skill_id,skill_lv)))
+			sc_start(bl,SC_STUN,5,skill_lv,skill_get_time(skill_id,skill_lv));
 	#else
 			if(!sc_start(bl,SC_STUN,3,skill_lv,skill_get_time(skill_id,skill_lv)))
 			sc_start(bl,SC_BLIND,3,skill_lv,skill_get_time2(skill_id,skill_lv));
@@ -14789,9 +14789,9 @@ void skill_weaponrefine(struct map_session_data *sd, int idx)
 	
 			pc_delitem(sd, i, 1, 0, 0, LOG_TYPE_OTHER);
 			if (per > rnd() % 1000) {
-				log_pick_pc(sd, LOG_TYPE_OTHER, -1, item, ditem);
+				logs->pick_pc(sd, LOG_TYPE_OTHER, -1, item, ditem);
 				item->refine++;
-				log_pick_pc(sd, LOG_TYPE_OTHER,  1, item, ditem);
+				logs->pick_pc(sd, LOG_TYPE_OTHER, 1, item, ditem);
 				if(item->equip) {
 					ep = item->equip;
 					pc_unequipitem(sd,idx,3);

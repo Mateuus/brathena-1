@@ -704,19 +704,16 @@ airplane_01,32,61,4	script	Nils#ein	1_M_03,1,1,{
 				set $050320_ein_typing, .@tasoo;
 				close;
 			}
-			else {
-				mes "[Nils]";
-				mes "^0000ff" + $050320_minus1_typing$ + "^000000 esse é o recorde atual conquistado com um total de ^0000ff" + $050320_ein_typing + "^000000 letras.";
-				mes "Tente bater esse recorde na próxima~";
-				close;
-			}
-		}
-		else {
 			mes "[Nils]";
-			mes "Aaah...";
-			mes "Me desculpe, mas você digitou o texto incorreto...";
+			mes "^0000ff" + $050320_minus1_typing$ + "^000000 esse é o recorde atual conquistado com um total de ^0000ff" + $050320_ein_typing + "^000000 letras.";
+			mes "Tente bater esse recorde na próxima~";
 			close;
 		}
+		mes "[Nils]";
+		mes "Aaah...";
+		mes "Me desculpe, mas você digitou o texto incorreto...";
+		close;
+
 	case 2:
 		mes "[Nils]";
 		mes "O ^ff0000Desafio de Digitação de RO^000000 é um jogo onde você deve digitar o texto exibido o mais rápido que você puder.";
