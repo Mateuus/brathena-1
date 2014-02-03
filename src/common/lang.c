@@ -141,7 +141,7 @@ void load_message_file_source(void)
 	memset(lang_s, 0, sizeof(LANG));
 	
 	if((main_group = config_lookup(&group_ext, "Source"))) {
-		int i, h, k = 0, groups_count = libconfig->setting_length(main_group), group_count = 0;
+		int i, h, k = 0, groups_count = libconfig->setting_length(main_group), group_count;
 		config_setting_t *group_ele;
 		config_setting_t *groups;
 		

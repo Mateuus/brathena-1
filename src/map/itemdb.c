@@ -32,7 +32,7 @@
 #include <string.h>
 
 static struct item_data *itemdb_array[MAX_ITEMDB];
-static DBMap            *itemdb_other;// int nameid -> struct item_data*
+static DBMap *itemdb_other;// int nameid -> struct item_data*
 
 struct item_data dummy_item; //This is the default dummy item used for non-existant items. [Skotlex]
 
@@ -1169,7 +1169,7 @@ void itemdb_read_packages(void) {
 static bool ItemMoveInfo(char *str[], int columns, int current)
 {
 	// <nameid>,<mask>,<gm level>
-	int nameid, drop, trade, storage, cart, vending, mail, auction, bindonequip, gmlv;
+	int nameid, drop, trade, storage, cart, sell, mail, auction, bindonequip, gmlv;
 	struct item_data *id;
 
 	nameid = atoi(str[0]);
@@ -1185,7 +1185,7 @@ static bool ItemMoveInfo(char *str[], int columns, int current)
 	trade = atoi(str[2]);
 	storage = atoi(str[3]);
 	cart = atoi(str[4]);
-	vending = atoi(str[5]);
+	sell = atoi(str[5]);
 	mail = atoi(str[6]);
 	auction = atoi(str[7]);
 	bindonequip = atoi(str[8]);
