@@ -128,6 +128,5 @@ void atcommand_defaults(void);
 
 /* stay here */
 #define ACMD_FUNC(x) static bool atcommand_ ## x (const int fd, struct map_session_data* sd, const char* command, const char* message, struct AtCommandInfo *info)
-//#define ACMD_FUNC(x) static int atcommand_ ## x (const int fd, struct map_session_data* sd, const char* command, const char* message)
 
 #endif /* _ATCOMMAND_H_ */
