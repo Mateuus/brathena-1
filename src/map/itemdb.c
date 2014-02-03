@@ -951,7 +951,7 @@ void itemdb_read_packages(void) {
 		c = 0;
 		while((it = libconfig->setting_get_elem(itg,c++))) {
 			int rval = 0;
-			const char *itname, *name2;
+			const char *name2;
 			if(!(t = libconfig->setting_get_member(it,"item")) || !(itname = config_setting_get_string(t))) {
 				ShowWarning("itemdb_read_packages: Valor do campo 'item' inválido no item '%d' do pacote '%s'. Ignorando entrada...\n",c,name);
 				libconfig->setting_remove_elem(itg, c - 1);

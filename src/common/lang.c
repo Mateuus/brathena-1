@@ -151,7 +151,7 @@ void load_message_file_source(void)
 			while(k < ARRAYLENGTH(Source) && (groups = libconfig->setting_get_member(group_ele, Source[k]))) {
 				group_count = config_setting_length(groups);
 
-				for(h = 0; h < config_setting_length(groups); h++) {
+				for(h = 0; h < group_count; h++) {
 					config_setting_t *group_e = libconfig->setting_get_elem(groups, h);
 
 					copy_to_list((char *)config_setting_name(group_e), (char *)config_setting_get_string_elem(groups, h), index);
