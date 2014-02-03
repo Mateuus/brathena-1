@@ -1200,7 +1200,7 @@ static bool ItemMoveInfo(char *str[], int columns, int current)
 	id->item_bound.trade = trade;
 	id->item_bound.storage = storage;
 	id->item_bound.cart = cart;
-	id->item_bound.vending = vending;
+	id->item_bound.vending = sell;
 	id->item_bound.mail = mail;
 	id->item_bound.auction = auction;
 	id->flag.bindonequip = bindonequip;
