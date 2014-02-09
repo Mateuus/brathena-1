@@ -67,15 +67,6 @@
 #endif
 #include <time.h>
 
-#ifdef BETA_THREAD_TEST
-#include "../common/atomic.h"
-#include "../common/spinlock.h"
-#include "../common/thread.h"
-#include "../common/mutex.h"
-#endif
-
-
-
 static inline int GETVALUE(const unsigned char *buf, int i)
 {
 	return (int)MakeDWord(MakeWord(buf[i], buf[i+1]), MakeWord(buf[i+2], 0));
@@ -88,30 +79,6 @@ static inline void SETVALUE(unsigned char *buf, int i, int n)
 }
 
 struct script_interface script_s;
-
-#ifdef BETA_THREAD_TEST
-/**
- * MySQL Query Slave
- **/
-static SPIN_LOCK queryThreadLock;
-static rAthread queryThread = NULL;
-static ramutex  queryThreadMutex = NULL;
-static racond   queryThreadCond = NULL;
-static volatile int32 queryThreadTerminate = 0;
-
-struct queryThreadEntry {
-	bool ok;
-	bool type; /* main db or log db? */
-	struct script_state *st;
-};
-
-/* Ladies and Gentleman the Manager! */
-struct {
-	struct queryThreadEntry **entry;/* array of structs */
-	int count;
-	int timer;/* used to receive processed entries */
-} queryThreadData;
-#endif
 
 const char* script_op2name(int op) {
 #define RETURN_OP_NAME(type) case type: return #type
@@ -4174,179 +4141,6 @@ void script_generic_ui_array_expand (unsigned int plus) {
 	RECREATE(script->generic_ui_array, unsigned int, script->generic_ui_array_size);
 }
 
-#ifdef BETA_THREAD_TEST
-int buildin_query_sql_sub(struct script_state *st, Sql *handle);
-
-/* used to receive items the queryThread has already processed */
-int queryThread_timer(int tid, int64 tick, int id, intptr_t data)
-{
-	int i, cursor = 0;
-	bool allOk = true;
-
-	EnterSpinLock(&queryThreadLock);
-
-	for(i = 0; i < queryThreadData.count; i++) {
-		struct queryThreadEntry *entry = queryThreadData.entry[i];
-
-		if(!entry->ok) {
-			allOk = false;
-			continue;
-		}
-
-		script->run_main(entry->st);
-
-		entry->st = NULL;/* empty entries */
-		aFree(entry);
-		queryThreadData.entry[i] = NULL;
-	}
-
-
-	if(allOk) {
-		/* cancel the repeating timer -- it'll re-create itself when necessary, dont need to remain looping */
-		delete_timer(queryThreadData.timer, queryThread_timer);
-		queryThreadData.timer = INVALID_TIMER;
-	}
-
-	/* now lets clear the mess. */
-	for(i = 0; i < queryThreadData.count; i++) {
-		struct queryThreadEntry *entry = queryThreadData.entry[i];
-		if(entry == NULL)
-			continue;/* entry on hold */
-
-		/* move */
-		memmove(&queryThreadData.entry[cursor], &queryThreadData.entry[i], sizeof(struct queryThreadEntry *));
-
-		cursor++;
-	}
-
-	queryThreadData.count = cursor;
-
-	LeaveSpinLock(&queryThreadLock);
-
-	return 0;
-}
-
-void queryThread_add(struct script_state *st, bool type)
-{
-	int idx = 0;
-	struct queryThreadEntry *entry = NULL;
-
-	EnterSpinLock(&queryThreadLock);
-
-	if(queryThreadData.count++ != 0)
-		RECREATE(queryThreadData.entry, struct queryThreadEntry * , queryThreadData.count);
-
-	idx = queryThreadData.count-1;
-
-	CREATE(queryThreadData.entry[idx],struct queryThreadEntry,1);
-
-	entry = queryThreadData.entry[idx];
-
-	entry->st = st;
-	entry->ok = false;
-	entry->type = type;
-	if(queryThreadData.timer == INVALID_TIMER) {   /* start the receiver timer */
-		queryThreadData.timer = add_timer_interval(gettick() + 100, queryThread_timer, 0, 0, 100);
-	}
-
-	LeaveSpinLock(&queryThreadLock);
-
-	/* unlock the queryThread */
-	racond_signal(queryThreadCond);
-}
-/* adds a new log to the queue */
-void queryThread_log(char *entry, int length)
-{
-	int idx = logThreadData.count;
-
-	EnterSpinLock(&queryThreadLock);
-
-	if(logThreadData.count++ != 0)
-		RECREATE(logThreadData.entry, char * , logThreadData.count);
-
-	CREATE(logThreadData.entry[idx], char, length + 1);
-	safestrncpy(logThreadData.entry[idx], entry, length + 1);
-
-	LeaveSpinLock(&queryThreadLock);
-
-	/* unlock the queryThread */
-	racond_signal(queryThreadCond);
-}
-
-/* queryThread_main */
-static void *queryThread_main(void *x)
-{
-	Sql *queryThread_handle = Sql_Malloc();
-	int i;
-
-	if(SQL_ERROR == Sql_Connect(queryThread_handle, map_server_id, map_server_pw, map_server_ip, map_server_port, map_server_db))
-		exit(EXIT_FAILURE);
-
-	if(strlen(default_codepage) > 0)
-		if(SQL_ERROR == Sql_SetEncoding(queryThread_handle, default_codepage))
-			Sql_ShowDebug(queryThread_handle);
-
-	if(log_config.sql_logs) {
-		logmysql_handle = Sql_Malloc();
-
-		if(SQL_ERROR == Sql_Connect(logmysql_handle, log_db_id, log_db_pw, log_db_ip, log_db_port, log_db_db))
-			exit(EXIT_FAILURE);
-
-		if(strlen(default_codepage) > 0)
-			if(SQL_ERROR == Sql_SetEncoding(logmysql_handle, default_codepage))
-				Sql_ShowDebug(logmysql_handle);
-	}
-
-	while(1) {
-
-		if(queryThreadTerminate > 0)
-			break;
-
-		EnterSpinLock(&queryThreadLock);
-
-		/* mess with queryThreadData within the lock */
-		for(i = 0; i < queryThreadData.count; i++) {
-			struct queryThreadEntry *entry = queryThreadData.entry[i];
-
-			if(entry->ok)
-				continue;
-			else if(!entry->st || !entry->st->stack) {
-				entry->ok = true;/* dispose */
-				continue;
-			}
-
-			script->buildin_query_sql_sub(entry->st, entry->type ? logmysql_handle : queryThread_handle);
-
-			entry->ok = true;/* we're done with this */
-		}
-
-		/* also check for any logs in need to be sent */
-		if(log_config.sql_logs) {
-			for(i = 0; i < logThreadData.count; i++) {
-				if(SQL_ERROR == Sql_Query(logmysql_handle, logThreadData.entry[i]))
-					Sql_ShowDebug(logmysql_handle);
-				aFree(logThreadData.entry[i]);
-			}
-			logThreadData.count = 0;
-		}
-
-		LeaveSpinLock(&queryThreadLock);
-
-		ramutex_lock(queryThreadMutex);
-		racond_wait(queryThreadCond,    queryThreadMutex,  -1);
-		ramutex_unlock(queryThreadMutex);
-
-	}
-
-	Sql_Free(queryThread_handle);
-
-	if(log_config.sql_logs) {
-		Sql_Free(logmysql_handle);
-	}
-
-	return NULL;
-}
-#endif
 /*==========================================
  * Destructor
  *------------------------------------------*/
@@ -4478,31 +4272,6 @@ void do_final_script(void) {
 
 	if(script->generic_ui_array)
 		aFree(script->generic_ui_array);
-
-#ifdef BETA_THREAD_TEST
-	/* QueryThread */
-	InterlockedIncrement(&queryThreadTerminate);
-	racond_signal(queryThreadCond);
-	rathread_wait(queryThread, NULL);
-
-	// Destroy cond var and mutex.
-	racond_destroy(queryThreadCond);
-	ramutex_destroy(queryThreadMutex);
-
-	/* Clear missing vars */
-	for(i = 0; i < queryThreadData.count; i++) {
-		aFree(queryThreadData.entry[i]);
-	}
-
-	aFree(queryThreadData.entry);
-
-	for(i = 0; i < logThreadData.count; i++) {
-		aFree(logThreadData.entry[i]);
-	}
-
-	aFree(logThreadData.entry);
-#endif
-
 	return;
 }
 /*==========================================
@@ -4525,29 +4294,6 @@ void do_init_script(void) {
 
 
 	mapreg->init();
-#ifdef BETA_THREAD_TEST
-	CREATE(queryThreadData.entry, struct queryThreadEntry *, 1);
-	queryThreadData.count = 0;
-	CREATE(logThreadData.entry, char *, 1);
-	logThreadData.count = 0;
-	/* QueryThread Start */
-
-	InitializeSpinLock(&queryThreadLock);
-
-	queryThreadData.timer = INVALID_TIMER;
-	queryThreadTerminate = 0;
-	queryThreadMutex = ramutex_create();
-	queryThreadCond = racond_create();
-
-	queryThread = rathread_create(queryThread_main, NULL);
-
-	if(queryThread == NULL) {
-		ShowFatalError("do_init_script: cannot spawn Query Thread.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	add_timer_func_list(queryThread_timer, "queryThread_timer");
-#endif
 }
 
 int script_reload(void) {
@@ -4558,24 +4304,6 @@ int script_reload(void) {
 #ifdef ENABLE_CASE_CHECK
 	script->global_casecheck.clear();
 #endif
-
-#ifdef BETA_THREAD_TEST
-	/* we're reloading so any queries undergoing should be...exterminated. */
-	EnterSpinLock(&queryThreadLock);
-
-	for(i = 0; i < queryThreadData.count; i++) {
-		aFree(queryThreadData.entry[i]);
-	}
-	queryThreadData.count = 0;
-
-	if(queryThreadData.timer != INVALID_TIMER) {
-		delete_timer(queryThreadData.timer, queryThread_timer);
-		queryThreadData.timer = INVALID_TIMER;
-	}
-
-	LeaveSpinLock(&queryThreadLock);
-#endif
-
 
 	iter = db_iterator(script->st_db);
 
@@ -13033,11 +12761,11 @@ BUILDIN_FUNC(getmercinfo)
 			else
 				script_pushconststr(st,"");
 			break;
-		case 3: script_pushint(st,md ? mercenary_get_faith(md) : 0); break;
-		case 4: script_pushint(st,md ? mercenary_get_calls(md) : 0); break;
-		case 5: script_pushint(st,md ? md->mercenary.kill_count : 0); break;
-		case 6: script_pushint(st,md ? mercenary_get_lifetime(md) : 0); break;
-		case 7: script_pushint(st,md ? md->db->lv : 0); break;
+		case 3: script_pushint(st, md ? mercenary->get_faith(md) : 0); break;
+		case 4: script_pushint(st, md ? mercenary->get_calls(md) : 0); break;
+		case 5: script_pushint(st, md ? md->mercenary.kill_count : 0); break;
+		case 6: script_pushint(st, md ? mercenary->get_lifetime(md) : 0); break;
+		case 7: script_pushint(st, md ? md->db->lv : 0); break;
 		default:
 			ShowError("buildin_getmercinfo: Invalid type %d (char_id=%d).\n", type, sd->status.char_id);
 			script_pushnil(st);
@@ -14295,6 +14023,15 @@ BUILDIN_FUNC(sscanf)
 	argc = script_lastdata(st)-3;
 
 	len = strlen(format);
+
+	if(len != 0 && strlen(str) == 0) {
+		// If the source string is empty but the format string is not, we return -1
+		// according to the C specs. (if the format string is also empty, we shall
+		// continue and return 0: 0 conversions took place out of the 0 attempted.)
+		script_pushint(st, -1);
+		return 0;
+	}
+
 	CREATE(buf, char, len*2+1);
 
 	// Issue sscanf for each parameter
@@ -14620,6 +14357,27 @@ BUILDIN_FUNC(atoi)
 	return 0;
 }
 
+BUILDIN_FUNC(axtoi) {
+	const char *hex = script_getstr(st,2);
+	long value = strtol(hex, NULL, 16);
+#if LONG_MAX > INT_MAX || LONG_MIN < INT_MIN
+	value = cap_value(value, INT_MIN, INT_MAX);
+#endif
+	script_pushint(st, (int)value);
+	return 0;
+}
+
+BUILDIN_FUNC(strtol) {
+	const char *string = script_getstr(st, 2);
+	int base = script_getnum(st, 3);
+	long value = strtol(string, NULL, base);
+#if LONG_MAX > INT_MAX || LONG_MIN < INT_MIN
+	value = cap_value(value, INT_MIN, INT_MAX);
+#endif
+	script_pushint(st, (int)value);
+	return 0;
+}
+
 // case-insensitive substring search [lordalfa]
 BUILDIN_FUNC(compare)
 {
@@ -14796,18 +14554,7 @@ int buildin_query_sql_sub(struct script_state *st, Sql *handle)
 
 BUILDIN_FUNC(query_sql)
 {
-#ifdef BETA_THREAD_TEST
-	if(st->state != RERUNLINE) {
-		queryThread_add(st,false);
-
-		st->state = RERUNLINE;/* will continue when the query is finished running. */
-	} else
-		st->state = RUN;
-
-	return 0;
-#else
 	return script->buildin_query_sql_sub(st, mmysql_handle);
-#endif
 }
 
 BUILDIN_FUNC(query_logsql)
@@ -14817,18 +14564,7 @@ BUILDIN_FUNC(query_logsql)
 		script_pushint(st,-1);
 		return 1;
 	}
-#ifdef BETA_THREAD_TEST
-	if(st->state != RERUNLINE) {
-		queryThread_add(st,true);
-
-		st->state = RERUNLINE;/* will continue when the query is finished running. */
-	} else
-		st->state = RUN;
-
-	return 0;
-#else
-	return script->buildin_query_sql_sub(st, logmysql_handle);
-#endif
+	return script->buildin_query_sql_sub(st, logs->mysql_handle);
 }
 
 //Allows escaping of a given string.
@@ -15359,47 +15095,6 @@ BUILDIN_FUNC(searchitem)
 	}
 
 	script_pushint(st, count);
-	return 0;
-}
-
-int axtoi(const char *hexStg)
-{
-	int n = 0;         // position in string
-	int16 m = 0;         // position in digit[] to shift
-	int count;         // loop index
-	int intValue = 0;  // integer value of hex string
-	int digit[11];      // hold values to convert
-	while(n < 10) {
-		if(hexStg[n]=='\0')
-			break;
-		if(hexStg[n] > 0x29 && hexStg[n] < 0x40)   //if 0 to 9
-			digit[n] = hexStg[n] & 0x0f;            //convert to int
-		else if(hexStg[n] >='a' && hexStg[n] <= 'f')  //if a to f
-			digit[n] = (hexStg[n] & 0x0f) + 9;      //convert to int
-		else if(hexStg[n] >='A' && hexStg[n] <= 'F')  //if A to F
-			digit[n] = (hexStg[n] & 0x0f) + 9;      //convert to int
-		else break;
-		n++;
-	}
-	count = n;
-	m = n - 1;
-	n = 0;
-	while(n < count) {
-		// digit[n] is value of hex digit at position n
-		// (m << 2) is the number of positions to shift
-		// OR the bits into return value
-		intValue = intValue | (digit[n] << (m << 2));
-		m--;   // adjust the position to set
-		n++;   // next digit to process
-	}
-	return (intValue);
-}
-
-// [Lance] Hex string to integer converter
-BUILDIN_FUNC(axtoi)
-{
-	const char *hex = script_getstr(st,2);
-	script_pushint(st,script->axtoi(hex));
 	return 0;
 }
 
@@ -15948,7 +15643,7 @@ BUILDIN_FUNC(openmail)
 	if(sd == NULL)
 		return 0;
 
-	mail_openmail(sd);
+	mail->openmail(sd);
 
 	return 0;
 }
@@ -16033,11 +15728,11 @@ BUILDIN_FUNC(mercenary_create)
 
 	class_ = script_getnum(st,2);
 
-	if(!merc_class(class_))
+	if(!mercenary->class(class_))
 		return 0;
 
 	contract_time = script_getnum(st,3);
-	merc_create(sd, class_, contract_time);
+	mercenary->create(sd, class_, contract_time);
 	return 0;
 }
 
@@ -16184,7 +15879,7 @@ BUILDIN_FUNC(mercenary_set_faith)
 
 	*calls += value;
 	*calls = cap_value(*calls, 0, INT_MAX);
-	if(mercenary_get_guild(sd->md) == guild_id)
+	if(mercenary->get_guild(sd->md) == guild_id)
 		clif_mercenary_updatestatus(sd,SP_MERCFAITH);
 
 	return 0;
@@ -17159,7 +16854,7 @@ BUILDIN_FUNC(buyingstore)
 		return 0;
 	}
 
-	buyingstore_setup(sd, script_getnum(st,2));
+	buyingstore->setup(sd, script_getnum(st, 2));
 	return 0;
 }
 
@@ -17189,7 +16884,7 @@ BUILDIN_FUNC(searchstores)
 		return 1;
 	}
 
-	searchstore_open(sd, uses, effect);
+	searchstore->open(sd, uses, effect);
 	return 0;
 }
 /// Displays a number as large digital clock.
@@ -19271,6 +18966,7 @@ void script_parse_builtin(void) {
 	BUILDIN_DEF(query_logsql,"s*"),
 	BUILDIN_DEF(escape_sql,"v"),
 	BUILDIN_DEF(atoi,"s"),
+	BUILDIN_DEF(strtol,"si"),
 	// [zBuffer] List of player cont commands --->
 	BUILDIN_DEF(rid2name,"i"),
 	BUILDIN_DEF(pcfollow,"ii"),
@@ -19658,7 +19354,6 @@ void script_defaults(void) {
 	script->playbgm_foreachpc_sub = playBGM_foreachpc_sub;
 	script->soundeffect_sub = soundeffect_sub;
 	script->buildin_query_sql_sub = buildin_query_sql_sub;
-	script->axtoi = axtoi;
 	script->buildin_instance_warpall_sub = buildin_instance_warpall_sub;
 	script->buildin_mobuseskill_sub = buildin_mobuseskill_sub;
 	script->cleanfloor_sub = script_cleanfloor_sub;

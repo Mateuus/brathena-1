@@ -2282,7 +2282,7 @@ int battle_calc_skillratio(int attack_type, struct block_list *src, struct block
 				case LG_RAGEBURST:
 					if(sc){
 						skillratio += -100 + (status_get_max_hp(src) - status_get_hp(src)) / 100 + sc->fv_counter * 200;
-						clif_millenniumshield(sd, (sc->fv_counter = 0));
+						clif_millenniumshield(src, (sc->fv_counter = 0));
 					}
 					RE_LVL_DMOD(100);
 					break;
@@ -2690,8 +2690,7 @@ int64 battle_calc_damage(struct block_list *src,struct block_list *bl,struct Dam
 			if(sce->val3 <= 0) {   // Shield Down
 				sce->val2--;
 				if(sce->val2 > 0) {
-					if(sd)
-						clif_millenniumshield(sd,sce->val2);
+						clif_millenniumshield(bl,sce->val2);
 					sce->val3 = 1000; // Next Shield
 				} else
 					status_change_end(bl,SC_MILLENNIUMSHIELD,INVALID_TIMER); // All shields down
@@ -2938,9 +2937,9 @@ int64 battle_calc_damage(struct block_list *src,struct block_list *bl,struct Dam
 		   rnd()%100 < sce->val3)
 		   status->heal(src, damage*sce->val4 / 100, 0, 3);
 
-		if(sd && (sce = sc->data[SC_FORCEOFVANGUARD]) && flag&BF_WEAPON
+		if((sce = sc->data[SC_FORCEOFVANGUARD]) && flag&BF_WEAPON
 			&& rnd()%100 < sce->val2 && sc->fv_counter <= sce->val3)
-				clif_millenniumshield(sd, sc->fv_counter++);
+				clif_millenniumshield(bl, sc->fv_counter++);
 
 		if (sc->data[SC_STYLE_CHANGE]) {
                     TBL_HOM *hd = BL_CAST(BL_HOM,bl); //when being hit
@@ -6121,7 +6120,7 @@ bool battle_check_range(struct block_list *src, struct block_list *bl, int range
 #ifndef CIRCULAR_AREA
 	if(src->type == BL_PC) {   // Range for players' attacks and skills should always have a circular check. [Angezerus]
 		int dx = src->x - bl->x, dy = src->y - bl->y;
-		if(!check_distance(dx, dy, range))
+		if(!path->check_distance(dx, dy, range))
 			return false;
 	} else
 #endif
@@ -6134,7 +6133,7 @@ bool battle_check_range(struct block_list *src, struct block_list *bl, int range
 	if(d > AREA_SIZE)
 		return false; // Avoid targetting objects beyond your range of sight.
 
-	return path_search_long(NULL,src->m,src->x,src->y,bl->x,bl->y,CELL_CHKWALL);
+	return path->search_long(NULL, src->m, src->x, src->y, bl->x, bl->y, CELL_CHKWALL);
 }
 
 static const struct _battle_data {

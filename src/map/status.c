@@ -1278,10 +1278,17 @@ int status_damage(struct block_list *src,struct block_list *target,int64 in_hp, 
 	st->sp-= sp;
 
 	if(sc && hp && st->hp) {
+#if VERSION == -1
+		if(pc_checkskill(BL_CAST(BL_PC,target), SM_AUTOBERSERK) > 0 &&
+			(!sc->data[SC_PROVOKE] || !sc->data[SC_PROVOKE]->val2) &&
+			st->hp < st->max_hp>>2)
+			sc_start4(target,SC_PROVOKE,100,10,1,0,0,0);
+#else
 		if (sc->data[SC_AUTOBERSERK] &&
 			(!sc->data[SC_PROVOKE] || !sc->data[SC_PROVOKE]->val2) &&
 			st->hp < st->max_hp>>2)
 			sc_start4(target,SC_PROVOKE,100,10,1,0,0,0);
+#endif
 		if(sc->data[SC_BERSERK] && st->hp <= 100)
 			status_change_end(target, SC_BERSERK, INVALID_TIMER);
 		if(sc->data[SC_RAISINGDRAGON] && st->hp <= 1000)
@@ -1294,8 +1301,8 @@ int status_damage(struct block_list *src,struct block_list *target,int64 in_hp, 
 		case BL_PC:  pc_damage((TBL_PC *)target,src,hp,sp); break;
 		case BL_MOB: mob->damage((TBL_MOB *)target, src, hp); break;
 		case BL_HOM: homun->damaged((TBL_HOM *)target); break;
-		case BL_MER: mercenary_heal((TBL_MER *)target,hp,sp); break;
-		case BL_ELEM: elemental_heal((TBL_ELEM *)target,hp,sp); break;
+		case BL_MER: mercenary->heal((TBL_MER *)target, hp, sp); break;
+		case BL_ELEM: elemental->heal((TBL_ELEM *)target, hp, sp); break;
 	}
 
 	if(src && target->type == BL_PC && (((TBL_PC *)target)->disguise) > 0) { // stop walking when attacked in disguise to prevent walk-delay bug
@@ -1319,8 +1326,8 @@ int status_damage(struct block_list *src,struct block_list *target,int64 in_hp, 
 		case BL_PC:  flag = pc_dead((TBL_PC *)target,src); break;
 		case BL_MOB: flag = mob->dead((TBL_MOB *)target, src, flag & 4 ? 3 : 0); break;
 		case BL_HOM: flag = homun->dead((TBL_HOM *)target); break;
-		case BL_MER: flag = mercenary_dead((TBL_MER *)target); break;
-		case BL_ELEM: flag = elemental_dead((TBL_ELEM *)target); break;
+		case BL_MER: flag = mercenary->dead((TBL_MER *)target); break;
+		case BL_ELEM: flag = elemental->dead((TBL_ELEM *)target); break;
 		default:    //Unhandled case, do nothing to object.
 			flag = 0;
 			break;
@@ -1457,7 +1464,11 @@ int status_heal(struct block_list *bl,int64 in_hp,int64 in_sp, int flag) {
 	st->sp+= sp;
 
 	if( hp && sc
+#if VERSION == -1
+		&& pc_checkskill(BL_CAST(BL_PC,bl), SM_AUTOBERSERK) > 0
+#else
 	    && sc->data[SC_AUTOBERSERK]
+#endif
 	    && sc->data[SC_PROVOKE]
 	    && sc->data[SC_PROVOKE]->val2==1
 	    && st->hp>=st->max_hp>>2
@@ -1469,8 +1480,8 @@ int status_heal(struct block_list *bl,int64 in_hp,int64 in_sp, int flag) {
 		case BL_PC:  pc_heal((TBL_PC *)bl,hp,sp,flag&2?1:0); break;
 		case BL_MOB: mob->heal((TBL_MOB *)bl, hp); break;
 		case BL_HOM: homun->healed((TBL_HOM *)bl); break;
-		case BL_MER: mercenary_heal((TBL_MER *)bl,hp,sp); break;
-		case BL_ELEM: elemental_heal((TBL_ELEM *)bl,hp,sp); break;
+		case BL_MER: mercenary->heal((TBL_MER *)bl,hp,sp); break;
+		case BL_ELEM: elemental->heal((TBL_ELEM *)bl, hp, sp); break;
 	}
 
 	return (int)(hp+sp);
@@ -6143,10 +6154,10 @@ void status_set_viewdata(struct block_list *bl, int class_)
 		vd = npc->get_viewdata(class_);
 	else if(homdb_checkid(class_))
 		vd = homun->get_viewdata(class_);
-	else if(merc_class(class_))
-		vd = merc_get_viewdata(class_);
-	else if(elemental_class(class_))
-		vd = elemental_get_viewdata(class_);
+	else if(mercenary->class(class_))
+		vd = mercenary->get_viewdata(class_);
+	else if(elemental->class(class_))
+		vd = elemental->get_viewdata(class_);
 	else
 		vd = NULL;
 
@@ -8405,7 +8416,7 @@ int status_change_start(struct block_list* bl,enum sc_type type,int rate,int val
 					if(pc_isfalcon(sd)) pc_setoption(sd, sd->sc.option&~OPTION_FALCON);
 					if(sd->status.pet_id > 0) pet_menu(sd, 3);
 					if(homun_alive(sd->hd)) homun->vaporize(sd,HOM_ST_REST);
-					if(sd->md) merc_delete(sd->md,3);
+					if (sd->md) mercenary->delete(sd->md, 3);
 				}
 				break;
 			case SC__LAZINESS:
@@ -9796,7 +9807,7 @@ int status_change_end_(struct block_list *bl, enum sc_type type, int tid, const 
 		 * 3rd Stuff
 		 **/
 		case SC_MILLENNIUMSHIELD:
-			clif_millenniumshield(sd,0);
+			clif_millenniumshield(bl,0);
 			break;
 		case SC_HALLUCINATIONWALK:
 			sc_start(bl,SC_HALLUCINATIONWALK_POSTDELAY,100,sce->val1,skill_get_time2(GC_HALLUCINATIONWALK,sce->val1));
@@ -11442,6 +11453,8 @@ int status_natural_heal(struct block_list* bl, va_list args) {
 
 	if(flag&RGN_SHP) {
 		//Skill HP regen
+		if( pc_checkskill(sd, SM_RECOVERY) && (vd = status_get_viewdata(bl)) && vd->dead_sit == 2)
+			sregen->rate.hp = 2;
 		sregen->tick.hp += status->natural_heal_diff_tick * sregen->rate.hp;
 
 		while(sregen->tick.hp >= (unsigned int)battle_config.natural_heal_skill_interval) {
