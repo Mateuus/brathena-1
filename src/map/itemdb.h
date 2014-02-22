@@ -86,6 +86,7 @@ enum item_itemid {
 	ITEMID_PHRACON               = 1010,
 	ITEMID_EMVERETARCON          = 1011,
 	ITEMID_TRAP                  = 1065,
+	ITEMID_PILEBUNCKER           = 1549,
 	ITEMID_ANGRA_MANYU           = 1599,
 	ITEMID_STRANGE_EMBRYO        = 6415,
 	ITEMID_FACE_PAINT            = 6120,
@@ -124,6 +125,9 @@ enum item_itemid {
 	ITEMID_BULGING_HEAD          = 12309,
 	ITEMID_THICK_MANUAL50        = 12312,
 	ITEMID_ANCILLA               = 12333,
+	ITEMID_REPAIR_A              = 12392,
+	ITEMID_REPAIR_B              = 12393,
+	ITEMID_REPAIR_C              = 12394,
 	ITEMID_BLACK_THING           = 12435,
 	ITEMID_REINS_OF_MOUNT        = 12622,
 	ITEMID_NOBLE_NAMEPLATE       = 12705,
@@ -485,7 +489,6 @@ struct item_data *itemdb_exists(int nameid);
 #define itemdb_value_buy(n)   (itemdb_search(n)->value_buy)
 #define itemdb_value_sell(n)  (itemdb_search(n)->value_sell)
 #define itemdb_canrefine(n)   (!itemdb_search(n)->flag.no_refine)
-#define itemdb_traderight(n)  (itemdb_search(n)->item_bound.drop)
 
 #define itemdb_is_rune(n) (((n) >= ITEMID_NAUTHIZ && (n) <= ITEMID_HAGALAZ) || (n) == ITEMID_LUX_ANIMA)
 #define itemdb_is_element(n) ((n) >= ITEMID_BOODY_RED && (n) <= ITEMID_YELLOW_LIVE)

@@ -1031,7 +1031,7 @@ void clif_set_unit_idle(struct block_list* bl, struct map_session_data *tsd, enu
 #if PACKETVER >= 20080102
 	p.font = (sd) ? sd->status.font : 0;
 #endif
-#if PACKETVER >= 20140000 //actual 20120221
+#if PACKETVER >= 20150000 //actual 20120221
 	if( bl->type == BL_MOB ) {
 		p.maxHP = status_get_max_hp(bl);
 		p.HP = status_get_hp(bl);
@@ -1162,7 +1162,7 @@ void clif_spawn_unit(struct block_list* bl, enum send_target target) {
 #if PACKETVER >= 20080102
 	p.font = (sd) ? sd->status.font : 0;
 #endif
-#if PACKETVER >= 20140000 //actual 20120221
+#if PACKETVER >= 20150000 //actual 20120221
 	if( bl->type == BL_MOB ) {
 		p.maxHP = status_get_max_hp(bl);
 		p.HP = status_get_hp(bl);
@@ -1243,7 +1243,7 @@ void clif_set_unit_walking(struct block_list* bl, struct map_session_data *tsd, 
 #if PACKETVER >= 20080102
 	p.font = (sd) ? sd->status.font : 0;
 #endif
-#if PACKETVER >= 20140000 //actual 20120221
+#if PACKETVER >= 20150000 //actual 20120221
 	if( bl->type == BL_MOB ) {
 		p.maxHP = status_get_max_hp(bl);
 		p.HP = status_get_hp(bl);
@@ -5655,14 +5655,6 @@ void clif_broadcast2(struct block_list *bl, const char *mes, size_t len, unsigne
 		aFree(buf);
 }
 
-/*==========================================
- * Channel System
- *------------------------------------------*/
-
-
-
-
-
 /// Displays heal effect (ZC_RECOVERY).
 /// 013d <var id>.W <amount>.W
 /// var id:
@@ -5853,10 +5845,15 @@ void clif_wis_message(int fd, const char *nick, const char *mes, size_t mes_len)
 ///     3 = everyone ignored by target
 void clif_wis_end(int fd, int flag)
 {
-	WFIFOHEAD(fd,packet_len(0x98));
-	WFIFOW(fd,0) = 0x98;
+#if PACKETVER >= 20131223
+	const int cmd = 0x9df;
+#else
+	const int cmd = 0x98;
+#endif
+	WFIFOHEAD(fd,packet_len(cmd));
+	WFIFOW(fd,0) = cmd;
 	WFIFOW(fd,2) = flag;
-	WFIFOSET(fd,packet_len(0x98));
+	WFIFOSET(fd,packet_len(cmd));
 }
 
 
@@ -9351,14 +9348,14 @@ void clif_parse_LoadEndAck(int fd,struct map_session_data *sd)
 			clif->status_change(&sd->bl, SI_WUGRIDER, 1, 0, 0, 0, 0);
 
 		if(sd->status.manner < 0)
-			sc_start(&sd->bl,SC_NOCHAT,100,0,0);
+			sc_start(NULL, &sd->bl, SC_NOCHAT, 100, 0, 0);
 
 		//Auron reported that This skill only triggers when you logon on the map o.O [Skotlex]
 		if((lv = pc_checkskill(sd,SG_KNOWLEDGE)) > 0) {
 			if(sd->bl.m == sd->feel_map[0].m
 			   || sd->bl.m == sd->feel_map[1].m
 			   || sd->bl.m == sd->feel_map[2].m)
-				sc_start(&sd->bl, SC_KNOWLEDGE, 100, lv, skill_get_time(SG_KNOWLEDGE, lv));
+			   sc_start(NULL, &sd->bl, SC_KNOWLEDGE, 100, lv, skill_get_time(SG_KNOWLEDGE, lv));
 		}
 
 		if(sd->pd && sd->pd->pet.intimate > 900)
@@ -9704,7 +9701,7 @@ void clif_disconnect_ack(struct map_session_data *sd, short result)
 void clif_parse_QuitGame(int fd, struct map_session_data *sd)
 {
 	/*  Rovert's prevent logout option fixed [Valaris]  */
-	if(!sd->sc.data[SC_CLOAKING] && !sd->sc.data[SC_HIDING] && !sd->sc.data[SC_CHASEWALK] && !sd->sc.data[SC_CLOAKINGEXCEED] &&
+	if(!sd->sc.data[SC_CLOAKING] && !sd->sc.data[SC_HIDING] && !sd->sc.data[SC_CHASEWALK] && !sd->sc.data[SC_CLOAKINGEXCEED] && !sd->sc.data[SC__INVISIBILITY] &&
 	   (!battle_config.prevent_logout || DIFF_TICK(gettick(), sd->canlog_tick) > battle_config.prevent_logout)) {
 		set_eof(fd);
 		clif_disconnect_ack(sd, 0);
@@ -9783,7 +9780,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd)
 	if (atcommand->exec(fd, sd, message, true))
 		return;
 
-	if(sd->sc.data[SC_BERSERK] || sd->sc.data[SC_DEEP_SLEEP] || (sd->sc.data[SC_NOCHAT] && sd->sc.data[SC_NOCHAT]->val1&MANNER_NOCHAT))
+	if(sd->sc.data[SC_BERSERK] || (sd->sc.data[SC_DEEP_SLEEP] && sd->sc.data[SC_DEEP_SLEEP]->val2) || (sd->sc.data[SC_NOCHAT] && sd->sc.data[SC_NOCHAT]->val1&MANNER_NOCHAT))
 		return;
 
 	if(battle_config.min_chat_delay) {
@@ -9816,7 +9813,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd)
 							sd->state.snovice_call_flag = 3;
 						break;
 					case 3:
-						sc_start(&sd->bl, status->skill2sc(MO_EXPLOSIONSPIRITS), 100, 17, skill_get_time(MO_EXPLOSIONSPIRITS, 5)); //Lv17-> +50 critical (noted by Poki) [Skotlex]
+						sc_start(NULL, &sd->bl, status->skill2sc(MO_EXPLOSIONSPIRITS), 100, 17, skill_get_time(MO_EXPLOSIONSPIRITS, 5)); //Lv17-> +50 critical (noted by Poki) [Skotlex]
 						clif_skill_nodamage(&sd->bl, &sd->bl, MO_EXPLOSIONSPIRITS, 5, 1);  // prayer always shows successful Lv5 cast and disregards noskill restrictions
 						sd->state.snovice_call_flag = 0;
 						break;
@@ -10039,6 +10036,7 @@ void clif_parse_ActionRequest_sub(struct map_session_data *sd, int action_type, 
 	   (sd->sc.data[SC_TRICKDEAD] ||
 	    sd->sc.data[SC_AUTOCOUNTER] ||
 	    sd->sc.data[SC_BLADESTOP] ||
+	    sd->sc.data[SC_DEEP_SLEEP] ||
 	    sd->sc.data[SC__MANHOLE] ||
 	    sd->sc.data[SC_CURSEDCIRCLE_ATKER] ||
 	    sd->sc.data[SC_CURSEDCIRCLE_TARGET]))
@@ -10060,7 +10058,8 @@ void clif_parse_ActionRequest_sub(struct map_session_data *sd, int action_type, 
 			if(sd->sc.option&(OPTION_WEDDING|OPTION_XMAS|OPTION_SUMMER|OPTION_HANBOK|OPTION_OKTOBERFEST))
 				return;
 
-			if(sd->sc.data[SC_BASILICA] || sd->sc.data[SC__SHADOWFORM])
+			if(sd->sc.data[SC_BASILICA] || sd->sc.data[SC__SHADOWFORM] ||
+			(sd->sc.data[SC_SIREN] && sd->sc.data[SC_SIREN]->val2 == target_id))
 				return;
 
 			if(!battle_config.sdelay_attack_enable && pc_checkskill(sd, SA_FREECAST) <= 0) {
@@ -10266,7 +10265,7 @@ void clif_parse_Restart(int fd, struct map_session_data *sd)
 			break;
 		case 0x01:
 			/*  Rovert's Prevent logout option - Fixed [Valaris]    */
-			if(!sd->sc.data[SC_CLOAKING] && !sd->sc.data[SC_HIDING] && !sd->sc.data[SC_CHASEWALK] && !sd->sc.data[SC_CLOAKINGEXCEED] &&
+			if(!sd->sc.data[SC_CLOAKING] && !sd->sc.data[SC_HIDING] && !sd->sc.data[SC_CHASEWALK] && !sd->sc.data[SC_CLOAKINGEXCEED] && !sd->sc.data[SC__INVISIBILITY] &&
 			   (!battle_config.prevent_logout || DIFF_TICK(gettick(), sd->canlog_tick) > battle_config.prevent_logout)) {
 				//Send to char-server for character selection.
 				chrif_charselectreq(sd, session[fd]->client_addr);
@@ -10295,7 +10294,7 @@ void clif_parse_WisMessage(int fd, struct map_session_data *sd)
 	if(atcommand->exec(fd, sd, message, true))
 		return;
 
-	if(sd->sc.data[SC_BERSERK] || sd->sc.data[SC_DEEP_SLEEP] || (sd->sc.data[SC_NOCHAT] && sd->sc.data[SC_NOCHAT]->val1&MANNER_NOCHAT))
+	if (sd->sc.data[SC_BERSERK] || (sd->sc.data[SC_DEEP_SLEEP] && sd->sc.data[SC_DEEP_SLEEP]->val2) || (sd->sc.data[SC_NOCHAT] && sd->sc.data[SC_NOCHAT]->val1&MANNER_NOCHAT))
 		return;
 
 	if(battle_config.min_chat_delay) {  //[Skotlex]
@@ -12143,7 +12142,7 @@ void clif_parse_PartyMessage(int fd, struct map_session_data *sd)
 	if(atcommand->exec(fd, sd, message, true))
 		return;
 
-	if(sd->sc.data[SC_BERSERK] || sd->sc.data[SC_DEEP_SLEEP] || (sd->sc.data[SC_NOCHAT] && sd->sc.data[SC_NOCHAT]->val1&MANNER_NOCHAT))
+	if(sd->sc.data[SC_BERSERK] || (sd->sc.data[SC_DEEP_SLEEP] && sd->sc.data[SC_DEEP_SLEEP]->val2) || (sd->sc.data[SC_NOCHAT] && sd->sc.data[SC_NOCHAT]->val1&MANNER_NOCHAT))
 		return;
 
 	if(battle_config.min_chat_delay) {
@@ -13214,7 +13213,7 @@ void clif_parse_GuildMessage(int fd, struct map_session_data *sd)
 	if(atcommand->exec(fd, sd, message, true))
 		return;
 
-	if(sd->sc.data[SC_BERSERK] || sd->sc.data[SC_DEEP_SLEEP] || (sd->sc.data[SC_NOCHAT] && sd->sc.data[SC_NOCHAT]->val1&MANNER_NOCHAT))
+	if(sd->sc.data[SC_BERSERK] || (sd->sc.data[SC_DEEP_SLEEP] && sd->sc.data[SC_DEEP_SLEEP]->val2) || (sd->sc.data[SC_NOCHAT] && sd->sc.data[SC_NOCHAT]->val1&MANNER_NOCHAT))
 		return;
 
 	if(battle_config.min_chat_delay) {
@@ -13679,7 +13678,7 @@ void clif_parse_GMReqNoChat(int fd,struct map_session_data *sd)
 
 		if(dstsd->status.manner < value) {
 			dstsd->status.manner -= value;
-			sc_start(&dstsd->bl,SC_NOCHAT,100,0,0);
+			sc_start(NULL, &dstsd->bl, SC_NOCHAT, 100, 0, 0);
 
 		} else {
 			dstsd->status.manner = 0;
@@ -13915,7 +13914,7 @@ void clif_parse_NoviceExplosionSpirits(int fd, struct map_session_data *sd)
 
 			if(percent && (percent%100) == 0) {
 				// 10.0%, 20.0%, ..., 90.0%
-				sc_start(&sd->bl, status->skill2sc(MO_EXPLOSIONSPIRITS), 100, 17, skill_get_time(MO_EXPLOSIONSPIRITS, 5)); //Lv17-> +50 critical (noted by Poki) [Skotlex]
+				sc_start(NULL, &sd->bl, status->skill2sc(MO_EXPLOSIONSPIRITS), 100, 17, skill_get_time(MO_EXPLOSIONSPIRITS, 5)); //Lv17-> +50 critical (noted by Poki) [Skotlex]
 				clif_skill_nodamage(&sd->bl, &sd->bl, MO_EXPLOSIONSPIRITS, 5, 1);  // prayer always shows successful Lv5 cast and disregards noskill restrictions
 			}
 		}
@@ -16248,7 +16247,7 @@ void clif_parse_BattleChat(int fd, struct map_session_data *sd)
 	if(atcommand->exec(fd, sd, message, true))
 		return;
 
-	if(sd->sc.data[SC_BERSERK] || sd->sc.data[SC_DEEP_SLEEP] || (sd->sc.data[SC_NOCHAT] && sd->sc.data[SC_NOCHAT]->val1&MANNER_NOCHAT))
+	if(sd->sc.data[SC_BERSERK] || (sd->sc.data[SC_DEEP_SLEEP] && sd->sc.data[SC_DEEP_SLEEP]->val2) || (sd->sc.data[SC_NOCHAT] && sd->sc.data[SC_NOCHAT]->val1&MANNER_NOCHAT))
 		return;
 
 	if(battle_config.min_chat_delay) {

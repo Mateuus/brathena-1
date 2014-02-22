@@ -930,7 +930,7 @@ void do_final_elemental(void) {
 }
 
 /*=====================================
-*
+*Interface
 *-------------------------------------*/
 void elemental_defaults(void) {
 	elemental = &elemental_s;

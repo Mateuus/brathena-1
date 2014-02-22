@@ -494,7 +494,6 @@ extern struct Battle_Config {
 	int item_restricted_consumption_type;
 	int max_walk_path;
 	int item_enabled_npc;
-	int item_onfloor; // Whether to drop an undroppable item on the map or destroy it if inventory is full.
 	int packet_obfuscation;
 	int idletime_criteria;
 
@@ -602,6 +601,7 @@ bool battle_check_range(struct block_list *src,struct block_list *bl,int range);
 int64 battle_calc_elefix(struct block_list *src, struct block_list *target, uint16 skill_id, uint16 skill_lv, int64 damage, int nk, int n_ele, int s_ele, int s_ele_, bool left, int flag);
   /* applies mastery modifiers */  
 int64 battle_calc_masteryfix(struct block_list *src, struct block_list *target, uint16 skill_id, uint16 skill_lv, int64 damage, int div, bool left, bool weapon);
+int battle_calc_chorusbonus(struct map_session_data *sd);
   /* applies skill modifiers */  
 int battle_calc_skillratio(int attack_type, struct block_list *src, struct block_list *target, uint16 skill_id, uint16 skill_lv, int skillratio, int flag);
   /* applies size modifiers */
