@@ -905,7 +905,7 @@ struct map_interface {
 	/* */
 	struct map_session_data *cpsd;
 	struct map_data *list;
-	/* [Ind/Hercules] */
+	/* [Ind] */
 	struct eri *iterator_ers;
 	char *cache_buffer; // Has the uncompressed gat data of all maps, so just one allocation has to be made
 	/* */
