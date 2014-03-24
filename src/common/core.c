@@ -22,14 +22,15 @@
 #include "../common/console.h"
 #include "../common/random.h"
 #ifndef MINICORE
-#include "../common/db.h"
-#include "../common/socket.h"
-#include "../common/timer.h"
-#include "../common/thread.h"
-#include "../common/sql.h"
-#include "../config/core.h"
-#include "../common/utils.h"
-#include "../common/conf.h"
+	#include "../common/db.h"
+	#include "../common/socket.h"
+	#include "../common/timer.h"
+	#include "../common/thread.h"
+	#include "../common/sql.h"
+	#include "../config/core.h"
+	#include "../common/utils.h"
+	#include "../common/conf.h"
+	#include "../common/ers.h"
 #endif
 
 #include <stdio.h>
@@ -41,7 +42,6 @@
 #else
 #include "../common/winapi.h" // Console close event handling
 #endif
-
 
 /// Called when a terminate signal is received.
 void (*shutdown_callback)(void) = NULL;
@@ -354,6 +354,7 @@ int main(int argc, char **argv)
 	sockt->final();
 	DB->final();
 	rathread_final();
+	ers_final();
 #endif
 
 	iMalloc->final();

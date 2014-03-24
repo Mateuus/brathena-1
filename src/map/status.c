@@ -1929,6 +1929,9 @@ int status_check_visibility(struct block_list *src, struct block_list *target) {
 	if(src->m != target->m || !check_distance_bl(src, target, view_range))
 		return 0;
 
+	if(src->type == BL_NPC) /* NPCs don't care for the rest */
+		return 1;
+
 	if((tsc = status->get_sc(target))) {
 		struct status_data *st = status->get_status_data(src);
 
@@ -2049,10 +2052,12 @@ unsigned short status_base_atk(const struct block_list *bl, const struct status_
 	return cap_value(str, 0, battle_config.max_atk);
 }
 
+#if VERSION != 1
 static inline unsigned short status_base_matk_min(const struct status_data *st)
 {
 	return st->int_+(st->int_/7)*(st->int_/7);
 }
+#endif
 static inline unsigned short status_base_matk_max(const struct status_data *st)
 {
 	return st->int_+(st->int_/5)*(st->int_/5);
@@ -3112,9 +3117,6 @@ int status_calc_pc_(struct map_session_data* sd, enum e_status_calc_opt opt) {
 		bstatus->def = (unsigned char)battle_config.max_def;
 	}
 #endif
-
-	if (sc->option&OPTION_MADOGEAR && (skill_lv = pc_checkskill(sd, NC_MAINFRAME)) > 0)
-		bstatus->def2 += skill_lv * 4 - ((skill_lv >= 2) ? 1 : 0);
 
 // ----- EQUIPMENT-MDEF CALCULATION -----
 
@@ -6525,7 +6527,7 @@ int status_get_sc_def(struct block_list *src, struct block_list *bl, enum sc_typ
 	case SC_ADORAMUS:
 		if (sd) tick >>= 1; //Half duration for players.
 		sc_def = st->mdef*100;
-#if VERSION == 1
+#if VERSION != 1
 		sc_def2 = st->luk*10;
 		tick_def2 = 0; //No duration reduction
 #endif
@@ -6535,7 +6537,7 @@ int status_get_sc_def(struct block_list *src, struct block_list *bl, enum sc_typ
 		sc_def = st->mdef*100;
 		sc_def2 = st->luk*10 + SCDEF_LVL_DIFF(bl, src, 99, 10);
 		tick_def = 0; //No duration reduction
-#if VERSION == 1
+#if VERSION != 1
 		tick_def2 = 0; //No duration reduction
 #endif
 		break;
@@ -6553,7 +6555,7 @@ int status_get_sc_def(struct block_list *src, struct block_list *bl, enum sc_typ
 		// Special property: immunity when luk is zero
 		if (st->luk == 0)
 			return 0;
-#if VERSION == 1
+#if VERSION != 1
 		// Special property: immunity when luk is greater than level
 		if (st->luk > status->get_lv(bl))
 			return 0;
@@ -7993,7 +7995,6 @@ int status_change_start(struct block_list *src, struct block_list *bl, enum sc_t
 			case SC_TURNKICK_READY:
 			case SC_DODGE_READY:
 			case SC_PUSH_CART:
-			case SC_ALL_RIDING:
 				tick = -1;
 				break;
 
@@ -8829,6 +8830,9 @@ int status_change_start(struct block_list *src, struct block_list *bl, enum sc_t
 				tick_time = 5000; // [GodLesZ] tick time
 				status->change_clear_buffs(bl, 3); //Remove buffs/debuffs
 				break;
+			case SC_CRESCENTELBOW:
+				val2 = (sd ? sd->status.job_level : 2) / 2 + 50 + 5 * val1;
+				break;
 			case SC_LIGHTNINGWALK: //  [(Job Level / 2) + (40 + 5 * Skill Level)] %
 				val1 = (sd?sd->status.job_level:2)/2 + 40 + 5 * val1;
 				break;
@@ -9054,6 +9058,7 @@ int status_change_start(struct block_list *src, struct block_list *bl, enum sc_t
 				break;
 			case SC_TELEKINESIS_INTENSE:
 				val2 = 10 * val1;
+				val3 = 40 * val1;
 				break;
 			case SC_OFFERTORIUM:
 				val2 = 30 * val1;
@@ -9070,6 +9075,10 @@ int status_change_start(struct block_list *src, struct block_list *bl, enum sc_t
 			case SC_MONSTER_TRANSFORM:
 				if(!mob->db_checkid(val1))
 					val1 = 1002; // default poring
+				break;
+			case SC_ALL_RIDING:
+				unit_stop_attack(bl);
+				tick = -1;
 				break;
 		default:
 			if(calc_flag == SCB_NONE && status->SkillChangeTable[type] == 0 && status->IconChangeTable[type] == 0) {
@@ -9463,6 +9472,10 @@ int status_change_start(struct block_list *src, struct block_list *bl, enum sc_t
 			sc->option |= OPTION_OKTOBERFEST;
 			opt_flag |= 0x4;
 			break;
+		case SC__FEINTBOMB_MASTER:
+			sc->option |= OPTION_INVISIBLE;
+			opt_flag |= 0x4;
+			break;
 		default:
 			opt_flag = 0;
 	}
@@ -9703,7 +9716,7 @@ int status_change_end_(struct block_list *bl, enum sc_type type, int tid, const 
 	if(sce->timer != tid && tid != INVALID_TIMER)
 		return 0;
 
-	if(sd && sce->timer == INVALID_TIMER)
+	if(sd && sce->timer == INVALID_TIMER && !sd->state.loggingout)
 		chrif->del_scdata_single(sd->status.account_id, sd->status.char_id, type);
 
 	if(tid == INVALID_TIMER) {
@@ -10210,6 +10223,10 @@ int status_change_end_(struct block_list *bl, enum sc_type type, int tid, const 
 			break;
 		case SC_OKTOBERFEST:
 			sc->option &= ~OPTION_OKTOBERFEST;
+			opt_flag |= 0x4;
+			break;
+		case SC__FEINTBOMB_MASTER:
+			sc->option &= ~OPTION_INVISIBLE;
 			opt_flag |= 0x4;
 			break;
 		case SC_ORCISH:

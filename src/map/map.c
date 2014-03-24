@@ -1689,7 +1689,7 @@ int map_quit(struct map_session_data *sd) {
 		npc->event_dequeue(sd);
 
 	if(sd->bg_id && !sd->bg_queue.arena) /* TODO: dump this chunk after bg_queue is fully enabled */
-		bg_team_leave(sd,1);
+		bg_team_leave(sd,BGTL_QUIT);
 
 	if(sd->state.autotrade && runflag != MAPSERVER_ST_SHUTDOWN && !raChSys.closing)
 		pc_autotrade_update(sd,PAUC_REMOVE);
@@ -3768,7 +3768,6 @@ char *get_database_name(int database_id)
 
 	return db_name;
 }
-
 /*=======================================
  *  MySQL Init
  *---------------------------------------*/
@@ -5630,9 +5629,7 @@ int do_init(int argc, char *argv[])
 #ifdef GCOLLECT
 	GC_enable_incremental();
 #endif
-
 	map_load_defaults();
-
 
 	for(i = 1; i < argc ; i++) {
 		const char *arg = argv[i];
@@ -5699,7 +5696,6 @@ int do_init(int argc, char *argv[])
 		}
 	}
 
-
 	map->config_read(map->MAP_CONF_NAME);
 	CREATE(map->list,struct map_data,map->count);
 	map->count = 0;
@@ -5753,8 +5749,12 @@ int do_init(int argc, char *argv[])
 	ers_chunk_size(map->flooritem_ers, 100);
 
 	map->sql_init();
+
+	Sql_Update_Check(map->mysql_handle); // Verifica atualizações faltantes
+
 	if(logs->config.sql_logs)
 		logs->sql_init();
+
 
 	db_sql_init();
 
@@ -5763,7 +5763,9 @@ int do_init(int argc, char *argv[])
 	if(map->enable_grf)
 		grfio_init(map->GRF_PATH_FILENAME);
 
+
 	map->readallmaps();
+
 
 	add_timer_func_list(map->freeblock_timer, "map_freeblock_timer");
 	add_timer_func_list(map->clearflooritem_timer, "map_clearflooritem_timer");
@@ -5795,7 +5797,6 @@ int do_init(int argc, char *argv[])
 	do_init_battleground();
 	vending->init();
 
-
 	npc->event_do_oninit();  // Init npcs (OnInit)
 	npc->market_fromsql(); /* after OnInit */
 
@@ -5805,7 +5806,6 @@ int do_init(int argc, char *argv[])
 #ifdef CONSOLE_INPUT
 	console->setSQL(map->mysql_handle);
 #endif
-
 	ShowStatus("Servidor est%c "CL_GREEN"pronto"CL_RESET" (Porta "CL_GREEN"%d"CL_RESET").\n\n", 160, map->port);
 
 	if(runflag != CORE_ST_STOP) {

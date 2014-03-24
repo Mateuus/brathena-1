@@ -1745,7 +1745,6 @@ int do_init(int argc, char **argv)
 		add_timer_func_list(sync_ip_addresses, "sync_ip_addresses");
 		add_timer_interval(gettick() + login_config.ip_sync_interval, sync_ip_addresses, 0, 0, login_config.ip_sync_interval);
 	}
-
 	// Account database init
 	accounts = account_engine[0].db;
 	if(accounts == NULL) {
@@ -1758,6 +1757,8 @@ int do_init(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	account_db_sql_up(accounts); // Verifica atualizações faltantes
 
 	if(login_config.console) {
 		//##TODO invoke a CONSOLE_START plugin event
