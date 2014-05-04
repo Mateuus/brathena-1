@@ -17,6 +17,7 @@
 #include "../common/malloc.h"
 #include "../common/core.h"
 #include "../common/showmsg.h"
+#include "../common/sysinfo.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -579,14 +580,13 @@ static void memmgr_log(char *buf)
 	if(!log_fp) {
 		time_t raw;
 		struct tm *t;
-		const char* svn = get_svn_revision();
 
 		log_fp = fopen(memmer_logfile,"at");
 		if(!log_fp) log_fp = stdout;
 
 		time(&raw);
 		t = localtime(&raw);
-		fprintf(log_fp, (read_message("Source.common.memmgr_log")),(t->tm_year+1900), (t->tm_mon+1), t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, svn);
+		fprintf(log_fp, (read_message("Source.common.memmgr_log")),(t->tm_year+1900), (t->tm_mon+1), t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, sysinfo->vcstype(), sysinfo->vcsrevision_src());
 	}
 	fprintf(log_fp, "%s", buf);
 	return;

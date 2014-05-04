@@ -71,8 +71,6 @@
       <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4100;4800;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <AdditionalDependencies>libcmtd.lib;oldnames.lib;ws2_32.lib;libmysql.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -168,6 +166,7 @@
     <ClInclude Include="..\src\common\socket.h" />
     <ClInclude Include="..\src\common\sql.h" />
     <ClInclude Include="..\src\common\strlib.h" />
+    <ClInclude Include="..\src\common\sysinfo.h" />
     <ClInclude Include="..\src\common\timer.h" />
     <ClInclude Include="..\src\common\utils.h" />
     <ClInclude Include="..\3rdparty\mt19937ar\mt19937ar.h" />
@@ -200,6 +199,7 @@
     <ClCompile Include="..\src\common\socket.c" />
     <ClCompile Include="..\src\common\sql.c" />
     <ClCompile Include="..\src\common\strlib.c" />
+    <ClCompile Include="..\src\common\sysinfo.c" />
     <ClCompile Include="..\src\common\timer.c" />
     <ClCompile Include="..\src\common\utils.c" />
     <ClCompile Include="..\3rdparty\mt19937ar\mt19937ar.c" />

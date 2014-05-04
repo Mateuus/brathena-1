@@ -24,6 +24,7 @@
 #include "../common/socket.h"
 #include "../common/strlib.h"
 #include "../common/utils.h"
+#include "../common/sysinfo.h"
 
 #include "map.h"
 #include "path.h"
@@ -6685,8 +6686,9 @@ static const struct _battle_data {
 	/**
 	 * rAthena
 	 **/
-	{ "max_third_parameter",                &battle_config.max_third_parameter,             120,    10,     10000,          },
-	{ "max_baby_third_parameter",           &battle_config.max_baby_third_parameter,        108,    10,     10000,          },
+	{ "max_third_parameter",                &battle_config.max_third_parameter,             130,    10,     10000,          },
+	{ "max_baby_third_parameter",           &battle_config.max_baby_third_parameter,        117,    10,     10000,          },
+	{ "max_extended_parameter",             &battle_config.max_extended_parameter,          125,    10,     10000,          },
 	{ "atcommand_max_stat_bypass",          &battle_config.atcommand_max_stat_bypass,       0,      0,      100,            },
 	{ "skill_amotion_leniency",             &battle_config.skill_amotion_leniency,          90,     0,      300             },
 	{ "mvp_tomb_enabled",                   &battle_config.mvp_tomb_enabled,                1,      0,      1               },
@@ -6746,7 +6748,6 @@ void brAthena_report(char *date, char *time_c)
 {
 	int i, bd_size = ARRAYLENGTH(battle_data);
 	unsigned int config = 0;
-	const char *svn = get_svn_revision();
 	char timestring[25];
 	time_t curtime;
 	char *buf;
@@ -6771,6 +6772,7 @@ void brAthena_report(char *date, char *time_c)
 	    C_DMALLOC	            = 0x10000,
 	    C_GCOLLECT	            = 0x20000,
 	    C_SEND_SHORTLIST        = 0x40000,
+	    C_PACKETVER_RE          = 0x80000,
 	};
 
 	/* we get the current time */
@@ -6829,6 +6831,10 @@ void brAthena_report(char *date, char *time_c)
 	config |= C_SECURE_NPCTIMEOUT;
 #endif
 
+#ifdef PACKETVER_RE
+	config |= C_PACKETVER_RE;
+#endif
+
 	if (logs->config.sql_logs)
 		config |= C_SQL_LOGS;
 
@@ -6848,30 +6854,40 @@ void brAthena_report(char *date, char *time_c)
 
 #define BFLAG_LENGTH 35
 
-	CREATE(buf, char, 6 + 12 + 9 + 24 + 41 + 4 + 4 + 4 + (bd_size * (BFLAG_LENGTH + 4)) + 1);
+	CREATE(buf, char, 262 + (bd_size * ( BFLAG_LENGTH + 4 ) ) + 1);
 
 	/* build packet */
 
 	WBUFW(buf,0) = 0x3000;
-	WBUFW(buf,2) = 6 + 12 + 9 + 24 + 41 + 4 + 4 + 4 + (bd_size * (BFLAG_LENGTH + 4));
-	WBUFW(buf,4) = 0x9e;
+	WBUFW(buf,2) = 262 + (bd_size * (BFLAG_LENGTH + 4));
+	WBUFW(buf,4) = 0x9f;
 
-	safestrncpy((char *)WBUFP(buf,6), date, 12);
-	safestrncpy((char *)WBUFP(buf,6 + 12), time_c, 9);
-	safestrncpy((char *)WBUFP(buf,6 + 12 + 9), timestring, 24);
+	safestrncpy((char*)WBUFP(buf,6), date, 12);
+	safestrncpy((char*)WBUFP(buf,18), time_c, 9);
+	safestrncpy((char*)WBUFP(buf,27), timestring, 24);
 
-	safestrncpy((char*)WBUFP(buf,6 + 12 + 9 + 24), svn[0] != BRATHENA_UNKNOWN_VER ? svn : "Unknown", 41);
-	WBUFL(buf,6 + 12 + 9 + 24 + 41)     = map->getusers();
+	safestrncpy((char*)WBUFP(buf,51), sysinfo->platform(), 16);
+	safestrncpy((char*)WBUFP(buf,67), sysinfo->osversion(), 50);
+	safestrncpy((char*)WBUFP(buf,117), sysinfo->cpu(), 32);
+	WBUFL(buf,149) = sysinfo->cpucores();
+	safestrncpy((char*)WBUFP(buf,153), sysinfo->arch(), 8);
+	WBUFB(buf,161) = sysinfo->vcstypeid();
+	WBUFB(buf,162) = sysinfo->is64bit();
+	safestrncpy((char*)WBUFP(buf,163), sysinfo->vcsrevision_src(), 41);
+	safestrncpy((char*)WBUFP(buf,204), sysinfo->vcsrevision_scripts(), 41);
+	WBUFB(buf,245) = (sysinfo->is_superuser()? 1 : 0);
+	WBUFL(buf,246) = map->getusers();
 
-	WBUFL(buf,6 + 12 + 9 + 24 + 41 + 4) = config;
-	WBUFL(buf,6 + 12 + 9 + 24 + 41 + 4 + 4) = bd_size;
+	WBUFL(buf,250) = config;
+	WBUFL(buf,254) = PACKETVER;
 
+	WBUFL(buf,258) = bd_size;
 	for(i = 0; i < bd_size; i++) {
-		safestrncpy((char *)WBUFP(buf,6 + 12 + 9+ 24  + 41 + 4 + 4 + 4 + (i * (BFLAG_LENGTH + 4))), battle_data[i].str, 35);
-		WBUFL(buf,6 + 12 + 9 + 24 + 41 + 4 + 4 + 4 + BFLAG_LENGTH + (i * (BFLAG_LENGTH + 4))) = *battle_data[i].val;
+		safestrncpy((char*)WBUFP(buf,262 + (i * (BFLAG_LENGTH + 4))), battle_data[i].str, BFLAG_LENGTH);
+		WBUFL(buf,262 + BFLAG_LENGTH + (i * (BFLAG_LENGTH + 4))) = *battle_data[i].val;
 	}
 
-	chrif->send_report(buf,  6 + 12 + 9 + 24 + 41 + 4 + 4 + 4 + (bd_size * (BFLAG_LENGTH + 4)));
+	chrif->send_report(buf, 262 + ( bd_size * ( BFLAG_LENGTH + 4)));
 
 	aFree(buf);
 

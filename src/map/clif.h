@@ -1058,6 +1058,7 @@ struct clif_interface {
 	void (*spawn_unit2) (struct block_list* bl, enum send_target target);
 	void (*set_unit_idle2) (struct block_list* bl, struct map_session_data *tsd, enum send_target target);
 	void (*graffiti_entry) (struct block_list *bl, struct skill_unit *su, enum send_target target);
+	void (*refresh_storagewindow) (struct map_session_data *sd);
 	void (*ranklist) (struct map_session_data *sd, enum fame_list_type type);
 	void (*update_rankingpoint) (struct map_session_data *sd, enum fame_list_type type, int points);
 	void (*pRanklist) (int fd, struct map_session_data *sd);

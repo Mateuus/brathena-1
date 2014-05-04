@@ -24,6 +24,7 @@
 #include "../common/strlib.h"
 #include "../common/timer.h"
 #include "../common/utils.h"
+#include "../common/sysinfo.h"
 
 #include "map.h"
 #include "path.h"
@@ -3202,6 +3203,8 @@ void script_free_vars(struct DBMap *var_storage)
 
 void script_free_code(struct script_code *code)
 {
+	nullpo_retv(code);
+
 	if(code->instances)
 		script->stop_instances(code);
 	else {
@@ -4470,6 +4473,8 @@ int script_reload(void) {
 	mapreg->reload();
 
 	itemdb->name_constants();
+
+	sysinfo->vcsrevision_reload();
 
 	return 0;
 }
@@ -8539,7 +8544,7 @@ BUILDIN_FUNC(savepoint)
 
 	sd = script->rid2sd(st);
 	if(sd == NULL)
-		return 0;// no player attached, report source
+		return 1;// no player attached, report source
 
 	str = script_getstr(st, 2);
 	x   = script_getnum(st,3);
@@ -12558,6 +12563,13 @@ BUILDIN_FUNC(skilleffect)
 	uint16 skill_lv=script_getnum(st,3);
 	sd=script->rid2sd(st);
 
+	/* ensure we're standing because the following packet causes the client to virtually set the char to stand,
+	 * which leaves the server thinking it still is sitting. */
+	if(pc_issit(sd)) {
+		pc_setstand(sd);
+		skill_sit(sd,0);
+		clif_standing(&sd->bl);
+	}
 	clif_skill_nodamage(&sd->bl,&sd->bl,skill_id,skill_lv,1);
 
 	return 0;
@@ -13223,6 +13235,24 @@ BUILDIN_FUNC(getmapxy)
 		ShowWarning("script: buildin_getmapxy: not mapy variable\n");
 		script_pushint(st,-1);
 		return 1;
+	}
+
+	if(!is_string_variable(reference_getname(script_getdata(st, 2)))) {
+		ShowWarning("script: buildin_getmapxy: %s is not a string variable\n",reference_getname(script_getdata(st, 2)));
+		script_pushint(st,-1);
+		return false;
+	}
+	
+	if(is_string_variable(reference_getname(script_getdata(st, 3)))) {
+		ShowWarning("script: buildin_getmapxy: %s is a string variable, should be int\n",reference_getname(script_getdata(st, 3)));
+		script_pushint(st,-1);
+		return false;
+	}
+
+	if(is_string_variable(reference_getname(script_getdata(st, 4)))) {
+		ShowWarning("script: buildin_getmapxy: %s is a string variable, should be int\n",reference_getname(script_getdata(st, 4)));
+		script_pushint(st,-1);
+		return false;
 	}
 
 	// Possible needly check function parameters on C_STR,C_INT,C_INT
@@ -17278,20 +17308,6 @@ BUILDIN_FUNC(is_function)
 	return 0;
 }
 /**
- * get_revision() -> retrieves the current svn revision (if available)
- **/
-BUILDIN_FUNC(get_revision)
-{
-	const char *revision;
-
-	if((revision = get_svn_revision()) != 0)
-		script_pushint(st,atoi(revision));
-	else
-		script_pushint(st,-1);//unknown
-
-	return 0;
-}
-/**
  * freeloop(<toggle>) -> toggles this script instance's looping-check ability
  **/
 BUILDIN_FUNC(freeloop)
@@ -19267,7 +19283,6 @@ void script_parse_builtin(void) {
 	BUILDIN_DEF(getargcount,""),
 	BUILDIN_DEF(getcharip,"?"),
 	BUILDIN_DEF(is_function,"s"),
-	BUILDIN_DEF(get_revision,""),
 	BUILDIN_DEF(freeloop,"i"),
 	BUILDIN_DEF(getrandgroupitem,"ii"),
 	BUILDIN_DEF(cleanmap,"s"),

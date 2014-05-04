@@ -1145,11 +1145,14 @@ int npc_click(struct map_session_data *sd, struct npc_data *nd)
 	nullpo_retr(1, sd);
 
 	if(sd->npc_id != 0) {
-		ShowError("npc_click: npc_id != 0\n");
+		// The player clicked a npc after entering an OnTouch area
+		if(sd->areanpc_id != sd->npc_id)
+			ShowError("npc_click: npc_id != 0\n");
 		return 1;
 	}
 
-	if(!nd) return 1;
+	if(!nd)
+		return 1;
 
 	if((nd = npc->checknear(sd,&nd->bl)) == NULL)
 		return 1;
@@ -3939,6 +3942,18 @@ int npc_parsesrcfile(const char *filepath, bool runOnInit)
 		return -1;
 	}
 	fclose(fp);
+
+	if ((unsigned char)buffer[0] == 0xEF && (unsigned char)buffer[1] == 0xBB && (unsigned char)buffer[2] == 0xBF) {
+		// UTF-8 BOM. This is most likely an error on the user's part, because:
+		// - BOM is discouraged in UTF-8, and the only place where you see it is Notepad and such.
+		// - It's unlikely that the user wants to use UTF-8 data here, since we don't really support it, nor does the client by default.
+		// - If the user really wants to use UTF-8 (instead of latin1, EUC-KR, SJIS, etc), then they can still do it <without BOM>.
+		// More info at http://unicode.org/faq/utf_bom.html#bom5 and http://en.wikipedia.org/wiki/Byte_order_mark#UTF-8
+		ShowError("npc_parsesrcfile: Detected unsupported UTF-8 BOM in file '%s'. Stopping (please consider using another character set.)\n", filepath);
+		aFree(buffer);
+		fclose(fp);
+		return -1;
+	}
 
 	// parse buffer
 	for(p = script->skip_space(buffer); p && *p ; p = script->skip_space(p)) {

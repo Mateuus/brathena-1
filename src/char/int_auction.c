@@ -101,10 +101,6 @@ unsigned int auction_create(struct auction_data *auction)
 		StrBuf->Printf(&buf, ",'%d'", auction->item.card[j]);
 	StrBuf->AppendStr(&buf, ")");
 
-	//Unique Non Stackable Item ID
-	updateLastUid(auction->item.unique_id);
-	dbUpdateUid(sql_handle);
-
 	stmt = SqlStmt_Malloc(sql_handle);
 	if (SQL_SUCCESS != SqlStmt_PrepareStr(stmt, StrBuf->Value(&buf))
 	   ||  SQL_SUCCESS != SqlStmt_BindParam(stmt, 0, SQLDT_STRING, auction->seller_name, strnlen(auction->seller_name, NAME_LENGTH))

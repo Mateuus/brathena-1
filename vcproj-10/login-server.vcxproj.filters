@@ -55,9 +55,6 @@
     <ClCompile Include="..\src\common\utils.c">
       <Filter>common</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\common\conf.c">
-      <Filter>common</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\common\lang.c">
       <Filter>common</Filter>
     </ClCompile>
@@ -89,6 +86,9 @@
       <Filter>common</Filter>
     </ClCompile>
     <ClCompile Include="..\src\common\raconf.c">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\common\conf.c">
       <Filter>common</Filter>
     </ClCompile>
   </ItemGroup>
@@ -147,6 +147,9 @@
     <ClInclude Include="..\src\common\strlib.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\common\sysinfo.h">
+      <Filter>common</Filter>
+    </ClInclude>
     <ClInclude Include="..\src\common\timer.h">
       <Filter>common</Filter>
     </ClInclude>
@@ -190,6 +193,9 @@
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="..\src\common\raconf.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\conf.h">
       <Filter>common</Filter>
     </ClInclude>
   </ItemGroup>

@@ -42,18 +42,6 @@ extern Sql* lsql_handle;
 
 extern char tmp_db_name[32];
 
-int inter_accreg_tosql(int account_id, int char_id, struct accreg* reg, int type);
+int inter_accreg_tosql(int account_id, int char_id, struct accreg *reg, int type);
 
-uint64 inter_chk_lastuid(int8 flag, uint64 value);
-#ifdef NSI_UNIQUE_ID
-	#define updateLastUid(val_) inter_chk_lastuid(1, (val_))
-	#define dbUpdateUid(handler_) do { \
-		uint64 unique_id_ = inter_chk_lastuid(0, 0); \
-		if(unique_id_ && SQL_ERROR == Sql_Query((handler_), "UPDATE `%s` SET `value`='%"PRIu64"' WHERE `varname`='unique_id'", interreg_db, unique_id_)) \
-				Sql_ShowDebug(handler_);\
-	} while(0)
-#else
-	#define dbUpdateUid(handler_)
-	#define updateLastUid(val_)
-#endif
 #endif /* _INTER_SQL_H_ */

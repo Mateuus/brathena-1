@@ -37,13 +37,13 @@
     <ClCompile Include="..\src\common\strlib.c">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\common\sysinfo.c">
+      <Filter>common</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\common\timer.c">
       <Filter>common</Filter>
     </ClCompile>
     <ClCompile Include="..\src\common\utils.c">
-      <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\common\conf.c">
       <Filter>common</Filter>
     </ClCompile>
     <ClCompile Include="..\src\common\lang.c">
@@ -118,6 +118,9 @@
     <ClCompile Include="..\src\common\raconf.c">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\common\conf.c">
+      <Filter>common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\common\cbasetypes.h">
@@ -160,6 +163,9 @@
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="..\src\common\strlib.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\sysinfo.h">
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="..\src\common\timer.h">
@@ -244,6 +250,9 @@
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="..\src\common\raconf.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\conf.h">
       <Filter>common</Filter>
     </ClInclude>
   </ItemGroup>

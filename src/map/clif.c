@@ -3160,6 +3160,12 @@ void clif_changelook(struct block_list *bl,int type,int val)
 				break;
 			case LOOK_BASE:
 				if(!sd) break;
+				// We shouldn't update LOOK_BASE if the player is disguised
+				// if we do so the client will think that the player class
+				// is really a mob and issues like 7725 will happen in every
+				// SC_ that alters class_ in any way
+				if(sd->disguise != -1)
+					return;
 
 				if(sd->sc.option&OPTION_COSTUME)
 					vd->weapon = vd->shield = 0;
@@ -8380,6 +8386,34 @@ void clif_message(struct block_list* bl, const char* msg) {
 	clif_send(buf, WBUFW(buf,2), bl, AREA_CHAT_WOC);
 }
 
+/**
+ * Notifies the client that the storage window is still open
+ *
+ * Should only be used in cases where the client closed the 
+ * storage window without server's consent
+ **/
+void clif_refresh_storagewindow(struct map_session_data *sd) {
+	// Notify the client that the storage is open
+	if(sd->state.storage_flag == 1) {
+		storage->sortitem(sd->status.storage.items, ARRAYLENGTH(sd->status.storage.items));
+		clif_storagelist(sd, sd->status.storage.items, ARRAYLENGTH(sd->status.storage.items));
+		clif_updatestorageamount(sd, sd->status.storage.storage_amount, MAX_STORAGE);
+	}
+	// Notify the client that the gstorage is open otherwise it will
+	// remain locked forever and nobody will be able to access it
+	if(sd->state.storage_flag == 2) {
+		struct guild_storage *gstor;
+		if((gstor = gstorage->id2storage2(sd->status.guild_id)) == NULL) {
+			// Shouldn't happen... The information should already be at the map-server
+			intif->request_guild_storage(sd->status.account_id,sd->status.guild_id);
+		} else {
+			storage->sortitem(gstor->items, ARRAYLENGTH(gstor->items));
+			clif_storagelist(sd, gstor->items, ARRAYLENGTH(gstor->items));
+			clif_updatestorageamount(sd, gstor->storage_amount, MAX_GUILD_STORAGE);
+		}
+	}
+}
+
 // refresh the client's screen, getting rid of any effects
 void clif_refresh(struct map_session_data *sd)
 {
@@ -8440,6 +8474,7 @@ void clif_refresh(struct map_session_data *sd)
 		pc_disguise(sd, disguise);
 	}
 
+	clif->refresh_storagewindow(sd);
 }
 
 
@@ -9162,6 +9197,7 @@ void clif_parse_LoadEndAck(int fd,struct map_session_data *sd)
 #if PACKETVER >= 20090218
 	int i;
 #endif
+	bool first_time = false;
 
 	if(sd->bl.prev != NULL)
 		return;
@@ -9338,6 +9374,7 @@ void clif_parse_LoadEndAck(int fd,struct map_session_data *sd)
 
 	if(sd->state.connect_new) {
 		int lv;
+		first_time = true;
 		sd->state.connect_new = 0;
 		clif_skillinfoblock(sd);
 		clif_hotkeys_send(sd);
@@ -9500,6 +9537,10 @@ void clif_parse_LoadEndAck(int fd,struct map_session_data *sd)
 	}
 
 	clif_weather_check(sd);
+
+	// This should be displayed last
+	if(sd->guild && first_time)
+		clif_guild_notice(sd, sd->guild);
 
 	// For automatic triggering of NPCs after map loading (so you don't need to walk 1 step first)
 	if(map->getcell(sd->bl.m,sd->bl.x,sd->bl.y,CELL_CHKNPC))
@@ -10065,7 +10106,7 @@ void clif_parse_ActionRequest_sub(struct map_session_data *sd, int action_type, 
 				return;
 			}
 
-			if(pc_cant_act(sd) || sd->sc.option&OPTION_HIDE)
+			if(pc_cant_act(sd) || pc_issit(sd) || sd->sc.option&OPTION_HIDE)
 				return;
 
 			if(sd->sc.option&OPTION_COSTUME)
@@ -11157,11 +11198,17 @@ void clif_parse_ChangeCart(int fd,struct map_session_data *sd)
 /// status id:
 ///     SP_STR ~ SP_LUK
 /// amount:
-///     client sends always 1 for this, even when using /str+ and
-///     the like
-void clif_parse_StatusUp(int fd,struct map_session_data *sd)
-{
-	pc_statusup(sd,RFIFOW(fd,2), RFIFOB(fd, 4));
+///     Old clients send always 1 for this, even when using /str+ and the like.
+///     Newer clients (2013-12-23 and newer) send the correct amount.
+void clif_parse_StatusUp(int fd,struct map_session_data *sd) {
+	int increase_amount;
+
+	increase_amount = RFIFOB(fd,4);
+	if(increase_amount < 0) {
+		ShowDebug("clif_parse_StatusUp: Negative 'increase' value sent by client! (fd: %d, value: %d)\n",
+			fd, increase_amount);
+	}
+	pc_statusup(sd, RFIFOW(fd,2), increase_amount);
 }
 
 
@@ -11305,8 +11352,13 @@ void clif_parse_UseSkillToId(int fd, struct map_session_data *sd)
 		return;
 	}
 
-	if(pc_cant_act(sd) && skill_id != RK_REFRESH && !(skill_id == SR_GENTLETOUCH_CURE && (sd->sc.opt1 == OPT1_STONE || sd->sc.opt1 == OPT1_FREEZE || sd->sc.opt1 == OPT1_STUN)))
+	if(pc_cant_act(sd)
+	&& skill_id != RK_REFRESH
+	&& !(skill_id == SR_GENTLETOUCH_CURE && (sd->sc.opt1 == OPT1_STONE || sd->sc.opt1 == OPT1_FREEZE || sd->sc.opt1 == OPT1_STUN))
+	&& (sd->state.storage_flag && !(tmp&INF_SELF_SKILL)) // SELF skills can be used with the storage open
+	)
 		return;
+
 	if(pc_issit(sd))
 		return;
 
@@ -11507,7 +11559,8 @@ void clif_parse_UseSkillMap(int fd, struct map_session_data *sd)
 	if(skill_id != sd->menuskill_id)
 		return;
 
-	if(pc_cant_act(sd)) {
+	// It is possible to use teleport with the storage window open
+	if(pc_cant_act(sd) && (!sd->state.storage_flag && skill_id != AL_TELEPORT)) {
 		clif_menuskill_clear(sd);
 		return;
 	}
@@ -18731,6 +18784,7 @@ void clif_defaults(void) {
 	clif->spawn_unit2 = clif_spawn_unit2;
 	clif->set_unit_idle2 = clif_set_unit_idle2;
 	clif->graffiti_entry = clif_graffiti_entry;
+	clif->refresh_storagewindow = clif_refresh_storagewindow;
 	clif->ranklist = clif_ranklist;
 	clif->pRanklist = clif_parse_ranklist;
 	clif->update_rankingpoint = clif_update_rankingpoint;

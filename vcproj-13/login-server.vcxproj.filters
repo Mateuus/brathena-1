@@ -13,6 +13,9 @@
     <ClCompile Include="..\src\login\loginlog_sql.c">
       <Filter>login_sql</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\common\conf.c">
+      <Filter>common</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\common\core.c">
       <Filter>common</Filter>
     </ClCompile>
@@ -49,16 +52,16 @@
     <ClCompile Include="..\src\common\strlib.c">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\common\sysinfo.c">
+      <Filter>common</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\common\timer.c">
       <Filter>common</Filter>
     </ClCompile>
     <ClCompile Include="..\src\common\utils.c">
       <Filter>common</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\common\conf.c">
-      <Filter>common</Filter>
-    </ClCompile>
-	<ClCompile Include="..\src\common\lang.c">
+    <ClCompile Include="..\src\common\lang.c">
       <Filter>common</Filter>
     </ClCompile>
     <ClCompile Include="..\3rdparty\mt19937ar\mt19937ar.c">
@@ -148,6 +151,9 @@
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="..\src\common\strlib.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\common\sysinfo.h">
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="..\src\common\timer.h">

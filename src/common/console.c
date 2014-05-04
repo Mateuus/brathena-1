@@ -7,8 +7,8 @@
 *                                                                            *
 *                                                                            *
 * \file src/common/console.c                                                 *
-* DescriÃ§Ã£o PrimÃ¡ria.                                                        *
-* DescriÃ§Ã£o mais elaborada sobre o arquivo.                                  *
+* Descrição Primária.                                                        *
+* Descrição mais elaborada sobre o arquivo.                                  *
 * \author brAthena, Athena, eAthena                                          *
 * \date ?                                                                    *
 * \todo ?                                                                    *
@@ -17,6 +17,7 @@
 #include "../common/cbasetypes.h"
 #include "../common/showmsg.h"
 #include "../common/core.h"
+#include "../common/sysinfo.h"
 #include "../config/core.h"
 #include "console.h"
 
@@ -53,7 +54,7 @@ struct console_interface console_s;
  *	CORE : Display title
  *--------------------------------------*/
 void display_title(void) {
-	const char* svn = get_svn_revision();
+	const char *vcstype = sysinfo->vcstype();
 
 	ShowMessage("\n");
 	ShowMessage(""CL_BG_GREEN""CL_BT_WHITE"                                                                      "CL_CLL""CL_NORMAL"\n");
@@ -70,6 +71,14 @@ void display_title(void) {
 	ShowMessage(""CL_BG_GREEN""CL_BT_WHITE"                          www.brathena.org                            "CL_CLL""CL_NORMAL"\n");
 	ShowMessage(""CL_BG_GREEN""CL_BT_WHITE"                                                                      "CL_CLL""CL_NORMAL"\n");
 
+	ShowInfo(read_message("Source.common.core_revision"), sysinfo->is64bit() ? 64 : 32, sysinfo->platform());
+	ShowInfo(read_message("Source.common.core_revision1"), vcstype, CL_WHITE, sysinfo->vcsrevision_src(), CL_RESET);
+	ShowInfo(read_message("Source.common.core_revision2"), vcstype, CL_WHITE, sysinfo->vcsrevision_scripts(), CL_RESET);
+	ShowInfo(read_message("Source.common.core_revision3"), CL_WHITE, sysinfo->osversion(), CL_RESET, sysinfo->arch());
+	ShowInfo(read_message("Source.common.core_revision4"), CL_WHITE, sysinfo->cpu(), sysinfo->cpucores(), CL_RESET);
+	ShowInfo(read_message("Source.common.core_revision5"), sysinfo->compiler());
+	ShowInfo(read_message("Source.common.core_revision5"), sysinfo->cflags());
+
 	#if VERSION == -1
 		ShowInfo(read_message("Source.common.emulator_mode_ot"), CL_RED, CL_RESET, CL_GREEN, CL_RESET);
 	#elif VERSION == 0
@@ -77,7 +86,6 @@ void display_title(void) {
 	#else
 		ShowInfo(read_message("Source.common.emulator_mode_re"), CL_RED, CL_RESET, CL_GREEN, CL_RESET);
 	#endif
-	ShowInfo(read_message("Source.common.core_revision"), CL_WHITE, svn, CL_RESET);
 	ShowInfo(read_message("Source.common.client_version1"), CL_RED, CL_RESET, CL_GREEN, PACKETVER, CL_RESET);
 	ShowInfo(read_message("Source.common.client_version2"), CL_RED, CL_RESET);
 
@@ -102,15 +110,35 @@ int console_parse_key_pressed(void) {
 	return FD_ISSET(STDIN_FILENO, &fds);
 }
 #endif /* _WIN32 */
-CPCMD(exit) {
+
+/*======================================
+ *	CORE: Console commands
+ *--------------------------------------*/
+
+/**
+ * Stops server
+ **/
+CPCMD_C(exit,server) {
 	runflag = 0;
 }
-CPCMD(ers_report) {
+
+/**
+ * Displays ERS-related statistics (Entry Reusage System)
+ **/
+CPCMD_C(ers_report,server) {
 	ers_report();
 }
-CPCMD(mem_report) {
+
+/**
+ * Displays memory usage
+ **/
+CPCMD_C(mem_report,server) {
 	memmgr_report(line?atoi(line):0);
 }
+
+/**
+ * Displays command list
+ **/
 CPCMD(help) {
 	unsigned int i = 0;
 	for ( i = 0; i < console->cmd_list_count; i++ ) {
@@ -122,16 +150,42 @@ CPCMD(help) {
 		}
 	}
 }
-/* [Ind] */
-CPCMD(malloc_usage) {
+
+/**
+ * [Ind]
+ * Displays current malloc usage
+ */
+CPCMD_C(malloc_usage,server) {
 	unsigned int val = (unsigned int)iMalloc->usage();
 	ShowInfo("malloc_usage: %.2f MB\n",(double)(val)/1024);
 }
-
+/**
+ * Defines a main category
+ * Categories can't be used as commands!
+ * CP_DEF_C(category)
+ **/
 #define CP_DEF_C(x) { #x , NULL , NULL, NULL }
+/**
+ * Defines a sub-category
+ * Sub-categories can't be used as commands!
+ * CP_DEF_C2(command, category)
+ **/
 #define CP_DEF_C2(x,y) { #x , NULL , #y, NULL }
-#define CP_DEF_S(x,y) { #x , console_parse_ ## x , #y, NULL }
-#define CP_DEF(x) { #x , console_parse_ ## x , NULL, NULL }
+/**
+ * Defines a command that is inside a category or sub-category
+ * CP_DEF_S(command, category/sub-category)
+ **/
+#define CP_DEF_S(x,y) { #x, CPCMD_C_A(x,y), #y, NULL }
+/**
+ * Defines a command that is _not_ inside any category
+ * CP_DEF_S(command)
+ **/
+#define CP_DEF(x) { #x , CPCMD_A(x), NULL, NULL }
+
+/**
+ * Loads console commands list
+ * See CP_DEF_C, CP_DEF_C2, CP_DEF_S, CP_DEF
+ **/
 void console_load_defaults(void) {
 	struct {
 		char *name;
@@ -140,11 +194,17 @@ void console_load_defaults(void) {
 		struct CParseEntry *self;
 	} default_list[] = {
 		CP_DEF(help),
+		/**
+		 * Server related commands
+		 **/
 		CP_DEF_C(server),
 		CP_DEF_S(ers_report,server),
 		CP_DEF_S(mem_report,server),
 		CP_DEF_S(malloc_usage,server),
 		CP_DEF_S(exit,server),
+		/**
+		 * Sql related commands
+		 **/
 		CP_DEF_C(sql),
 		CP_DEF_C2(update,sql),
 	};
@@ -318,7 +378,7 @@ void console_parse_sub(char *line) {
 				cmd = cmd->u.next[i];
 			len += snprintf(sublist + len,CP_CMD_LENGTH * 5,":%s", cmd->cmd);
 		}
-		ShowError("it is only a category, type '"CL_WHITE"%s help"CL_RESET"' to list its subcommands\n",sublist);
+		ShowError("Is only a category, type '"CL_WHITE"%s help"CL_RESET"' to list its subcommands\n",sublist);
 	}
 }
 void console_parse(char* line) {

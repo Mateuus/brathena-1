@@ -3768,6 +3768,7 @@ char *get_database_name(int database_id)
 
 	return db_name;
 }
+
 /*=======================================
  *  MySQL Init
  *---------------------------------------*/
@@ -3889,11 +3890,10 @@ struct map_zone_data *map_merge_zone(struct map_zone_data *main, struct map_zone
 	}
 
 	CREATE(zone->capped_skills, struct map_zone_skill_damage_cap_entry *, zone->capped_skills_count);
-
-
+	
 	for(i = 0, cursor = 0; i < main->capped_skills_count; i++, cursor++ ) {
 		CREATE(zone->capped_skills[cursor], struct map_zone_skill_damage_cap_entry, 1);
-		memcpy(zone->capped_skills[cursor], main->disabled_commands[i], sizeof(struct map_zone_skill_damage_cap_entry));
+		memcpy(zone->capped_skills[cursor], main->capped_skills[i], sizeof(struct map_zone_skill_damage_cap_entry));
 	}
 	
 	for(i = 0; i < other->capped_skills_count; i++, cursor++ ) {
@@ -5490,8 +5490,6 @@ void map_helpscreen(bool do_exit)
  * Map-Server Version Screen [MC Cameri]
  *------------------------------------------------------*/
 void map_versionscreen(bool do_exit) {
-	const char *svn = get_svn_revision();
-	ShowInfo(CL_WHITE"brAthena vers%co do SVN: %s" CL_RESET"\n", 198, svn[0] != BRATHENA_UNKNOWN_VER ? svn : "Desconhecido");
 	ShowInfo(CL_GREEN"Website/Forum:"CL_RESET"\thttp://brathena.org\n");
 	ShowInfo(CL_GREEN"SVN:"CL_RESET"\thttp://svn.brathena.org\n");
 	if(do_exit)
@@ -5629,6 +5627,7 @@ int do_init(int argc, char *argv[])
 #ifdef GCOLLECT
 	GC_enable_incremental();
 #endif
+
 	map_load_defaults();
 
 	for(i = 1; i < argc ; i++) {
@@ -5755,7 +5754,6 @@ int do_init(int argc, char *argv[])
 	if(logs->config.sql_logs)
 		logs->sql_init();
 
-
 	db_sql_init();
 
 	i = mapindex->init();
@@ -5763,9 +5761,7 @@ int do_init(int argc, char *argv[])
 	if(map->enable_grf)
 		grfio_init(map->GRF_PATH_FILENAME);
 
-
 	map->readallmaps();
-
 
 	add_timer_func_list(map->freeblock_timer, "map_freeblock_timer");
 	add_timer_func_list(map->clearflooritem_timer, "map_clearflooritem_timer");
@@ -5806,6 +5802,7 @@ int do_init(int argc, char *argv[])
 #ifdef CONSOLE_INPUT
 	console->setSQL(map->mysql_handle);
 #endif
+
 	ShowStatus("Servidor est%c "CL_GREEN"pronto"CL_RESET" (Porta "CL_GREEN"%d"CL_RESET").\n\n", 160, map->port);
 
 	if(runflag != CORE_ST_STOP) {

@@ -8,9 +8,9 @@ before_script:
 
 script: 
   - chmod 777 configure
-  - ./configure --enable-debug && make sql -j3
+  - ./configure --enable-debug && make sql -j3 && ./map-server --version
   - make clean
-  - ./configure --disable-renewal --enable-debug && make sql -j3
+  - ./configure --disable-renewal --enable-debug && make sql -j3 && ./map-server --version
   
 notifications:
   email: false

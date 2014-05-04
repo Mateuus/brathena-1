@@ -2475,12 +2475,12 @@ int skill_attack(int attack_type, struct block_list *src, struct block_list *dsr
 		 **/
 		#if MAGIC_REFLECTION_TYPE
 
-		#if VERSION != 1
+		#if VERSION == 1
+			if(dmg.dmg_lv != ATK_MISS) //Wiz SL cancelled and consumed fragment
+		#else
 			// in pre-renewal Kaite reflected the entire damage received
 			// regardless of caster's equipament (Aegis 11.1)
 			if(dmg.dmg_lv != ATK_MISS && type == 1) //Wiz SL cancelled and consumed fragment
-		#else
-			if(dmg.dmg_lv != ATK_MISS) //Wiz SL cancelled and consumed fragment
 		#endif
 			{
 				short s_ele = skill_get_ele(skill_id, skill_lv);
@@ -10094,10 +10094,14 @@ int skill_castend_map(struct map_session_data *sd, uint16 skill_id, const char *
 
 	switch(skill_id) {
 		case AL_TELEPORT:
+			// The storage window is closed automatically by the client when there's
+			// any kind of map change, so we need to restore it automatically
 			if(strcmp(mapname,"Random")==0)
 				pc_randomwarp(sd,CLR_TELEPORT);
 			else if (sd->menuskill_val > 1) //Need lv2 to be able to warp here.
 				pc_setpos(sd, sd->status.save_point.map, sd->status.save_point.x, sd->status.save_point.y, CLR_TELEPORT);
+
+			clif->refresh_storagewindow(sd);
 			break;
 
 		case AL_WARP:

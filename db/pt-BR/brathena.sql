@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS `char` (
   `char_opt` INT( 11 ) unsigned NOT NULL default '0',
   `font` TINYINT( 3 ) UNSIGNED NOT NULL DEFAULT  '0',
   `unban_time` int(11) unsigned NOT NULL default '0',
+  `uniqueitem_counter` bigint(20) unsigned NOT NULL default '0',
   PRIMARY KEY  (`char_id`),
   UNIQUE KEY `name_key` (`name`),
   KEY `account_id` (`account_id`),
@@ -140,6 +141,7 @@ CREATE TABLE IF NOT EXISTS `charlog` (
   `time` datetime NOT NULL default '0000-00-00 00:00:00',
   `char_msg` varchar(255) NOT NULL default 'personagem selecionado',
   `account_id` int(11) NOT NULL default '0',
+  `char_id` int(11) unsigned NOT NULL default '0',
   `char_num` tinyint(4) NOT NULL default '0',
   `name` varchar(23) NOT NULL default '',
   `str` int(11) unsigned NOT NULL default '0',
@@ -642,6 +644,44 @@ CREATE TABLE IF NOT EXISTS `skill_homunculus` (
 ) ENGINE=MyISAM;
 
 --
+-- Estrutura da tabela `brathena_updates`
+--
+CREATE TABLE IF NOT EXISTS `brathena_updates` (
+  `sql_name` varchar(24) NOT NULL default '',
+  PRIMARY KEY (`sql_name`)
+) ENGINE=MyISAM;
+
+REPLACE INTO `brathena_updates` VALUES('brathena_r1371');
+REPLACE INTO `brathena_updates` VALUES('brathena_r1453');
+REPLACE INTO `brathena_updates` VALUES('brathena_r1512');
+REPLACE INTO `brathena_updates` VALUES('brathena_r1582');
+REPLACE INTO `brathena_updates` VALUES('brathena_r1583');
+REPLACE INTO `brathena_updates` VALUES('brathena_r1736');
+REPLACE INTO `brathena_updates` VALUES('brathena_r1812');
+REPLACE INTO `brathena_updates` VALUES('brathena_r1816');
+REPLACE INTO `brathena_updates` VALUES('brathena_r1824');
+REPLACE INTO `brathena_updates` VALUES('brathena_r1864');
+REPLACE INTO `brathena_updates` VALUES('brathena_r1893');
+REPLACE INTO `brathena_updates` VALUES('brathena_r1960');
+REPLACE INTO `brathena_updates` VALUES('brathena_r1974');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2026');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2061');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2459');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2490');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2495');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2508');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2519');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2532');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2566');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2569');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2657');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2679');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2770');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2802');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2806');
+REPLACE INTO `brathena_updates` VALUES('brathena_r2808');
+
+--
 -- Estrutura da tabela `sstatus`
 --
 
@@ -684,8 +724,6 @@ CREATE TABLE IF NOT EXISTS `interreg` (
   `value` varchar(20) NOT NULL,
    PRIMARY KEY (`varname`)
 ) ENGINE=InnoDB;
-INSERT INTO `interreg` (`varname`, `value`) VALUES
-('unique_id', '0');
 
 --
 -- Estrutura da tabela `account_data`

@@ -17,6 +17,8 @@
 #ifndef _DES_H_
 #define _DES_H_
 
+#include "../common/cbasetypes.h"
+
 
 /// One 64-bit block.
 typedef struct BIT64 {

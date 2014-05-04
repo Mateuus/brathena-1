@@ -243,23 +243,24 @@ lhz_dun03,0,0,0,0	monster#re	Howard Alt-Eisen	HARWORD,42,5000,0,0
 lhz_dun03,0,0,0,0	monster#re	Eremes Guile	EREMES,42,5000,0,0
 lhz_dun03,0,0,0,0	monster#re	Seyren Windsor	SEYREN,42,5000,0,0
 
+
 //========================================================================================
 // [Renovação] lhz_dun04 - Laboratório de Somatologia (Quarto Andar)
 //========================================================================================
-lhz_dun04,0,0,0,0	monster#re	Randel Lawrence	RANDEL,50,5000,0,0
-lhz_dun04,0,0,0,0	monster#re	Flamel Emul	FLAMEL,50,5000,0,0
-lhz_dun04,0,0,0,0	monster#re	Celia Alde	CELIA,50,5000,0,0
-lhz_dun04,0,0,0,0	monster#re	Chen Liu	CHEN,50,5000,0,0
-lhz_dun04,0,0,0,0	monster#re	Gertie Wie	GERTIE,50,5000,0,0
-lhz_dun04,0,0,0,0	monster#re	Alphoccio Basil	ALPHOCCIO,50,5000,0,0
-lhz_dun04,0,0,0,0	monster#re	Trentini	TRENTINI,50,5000,0,0
-lhz_dun04,0,0,0,0	monster#re	Paladino Randel	G_RANDEL,1,2700000,2400000,1
-lhz_dun04,0,0,0,0	monster#re	Criador Flamel	G_FLAMEL,1,3000000,2700000,1
-lhz_dun04,0,0,0,0	monster#re	Professora Celia	G_CELIA,1,2580000,2340000,1
-lhz_dun04,0,0,0,0	monster#re	Mestre Chen	G_CHEN,1,2700000,2500000,1
+lhz_dun04,0,0,0,0	monster#re	Randel Lawrence	RANDEL,42,5000,0,0
+lhz_dun04,0,0,0,0	monster#re	Flamel Emul	FLAMEL,42,5000,0,0
+lhz_dun04,0,0,0,0	monster#re	Celia Alde	CELIA,81,5000,0,0
+lhz_dun04,0,0,0,0	monster#re	Chen Liu	CHEN,42,5000,0,0
+lhz_dun04,0,0,0,0	monster#re	Gertie Wie	GERTIE,57,5000,0,0
+lhz_dun04,0,0,0,0	monster#re	Alphoccio Basil	ALPHOCCIO,42,5000,0,0
+lhz_dun04,0,0,0,0	monster#re	Trentini	TRENTINI,42,5000,0,0
+lhz_dun04,0,0,0,0	monster#re	Paladino Randel	G_RANDEL,1,3300000,3000000,1
+lhz_dun04,0,0,0,0	monster#re	Criador Flamel	G_FLAMEL,1,3300000,3000000,1
+lhz_dun04,0,0,0,0	monster#re	Professora Celia	G_CELIA,1,3300000,3000000,1
+lhz_dun04,0,0,0,0	monster#re	Mestre Chen	G_CHEN,1,3300000,3000000,1
 lhz_dun04,0,0,0,0	monster#re	Desordeira Gertie	G_GERTIE,1,3300000,3000000,1
-lhz_dun04,0,0,0,0	monster#re	Menestrel Alphoccio	G_ALPHOCCIO,1,2580000,2460000,1
-lhz_dun04,0,0,0,0	monster#re	Cigana Trentini	G_TRENTINI,1,2580000,2460000,1,{}
+lhz_dun04,0,0,0,0	monster#re	Menestrel Alphoccio	G_ALPHOCCIO,1,3300000,3000000,1
+lhz_dun04,0,0,0,0	monster#re	Cigana Trentini	G_TRENTINI,1,3300000,3000000,1,{}
 
 lhz_dun03,2,2,0	script#pre	invocar_chefe_lt	-1,{
 OnInit:

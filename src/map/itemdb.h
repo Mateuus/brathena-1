@@ -527,7 +527,7 @@ int itemdb_isidentified(int);
 int itemdb_isidentified2(struct item_data *data);
 int itemdb_isstackable(int);
 int itemdb_isstackable2(struct item_data *);
-uint64 itemdb_unique_id(int8 flag, int64 value); // Unique Item ID
+uint64 itemdb_unique_id(struct map_session_data *sd);
 
 void itemdb_reload(void);
 void do_final_itemdb(void);

@@ -63,10 +63,6 @@
 /// Descomente para habilitar as funções da zona de mapas ' "skill_damage_cap".
 //#define HMAP_ZONE_DAMAGE_CAP_TYPE
 
-/// Uncomment to enable Non Stackable items unique ID
-/// By enabling it, the system will create an unique id for each new non stackable item created
-//#define NSI_UNIQUE_ID
-
 /// Comente para desativar Sistema de Item Vinculado Clã/Grupo
 #define GP_BOUND_ITEMS
 
